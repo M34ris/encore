@@ -29,7 +29,8 @@ desugarProgram p@(Program{traits, classes, functions}) =
   -- Then the Actor trait is in place, this desugaring step will be changed
   -- so that the Actor trait is included instead
     desugarClass c@(Class{cmeta, cmethods})
-      | isActive c = c{cmethods = map desugarMethod (await:suspend:cmethods)}
+      -- | isActive c = c{cmethods = map desugarMethod (await:potato:etaz:suspend:cmethods)} -- ADDED potato:
+      | isActive c = c{cmethods = map desugarMethod (await:potato:suspend:cmethods)} -- ADDED potato:
       where
         await = Method{mmeta
                       ,mheader=awaitHeader
@@ -42,6 +43,33 @@ desugarProgram p@(Program{traits, classes, functions}) =
                             ,htype=unitType
                             ,hparams=[awaitParam]}
         awaitParam = Param{pmeta, pmut=Val, pname=Name "f", ptype=futureType $ typeVar "_t"}
+
+        -- ADDED      
+        potato = Method{mmeta, mheader=potatoHeader, mlocals=[], mbody=VarAccess emeta (qName "i")}
+        potatoHeader = Header{hmodifiers=[]
+                            ,kind=NonStreaming
+                            ,htypeparams=[]
+                            ,hname=Name "potato"
+                            ,htype=intType
+                            ,hparams=[potatoParam]}
+        potatoParam = Param{pmeta, pmut=Val, pname=Name "i", ptype=intType}
+
+        -- etaz = Method{mmeta, mheader=etazHeader, mlocals=[], mbody=IntLiteral (cloneMeta emeta) 13}
+        -- etazHeader = Header{hmodifiers=[]
+        --                     ,kind=NonStreaming
+        --                     ,htypeparams=[]
+        --                     ,hname=Name "etaz"
+        --                     ,htype=intType
+        --                     ,hparams=[etazParam]}
+        -- etazParam = Param{pmeta, pmut=Val, pname=Name "i", ptype=arrowType $ Nothing Nothing intType}
+
+        -- desugar Async{emeta, body} =
+        -- FunctionCall {emeta, typeArguments=[], qname, args}
+        -- where
+        --   qname = QName{qnspace = Nothing, qnsource=Nothing, qnlocal = Name "spawn"}
+        --   args = [lifted_body]
+        --   lifted_body = Closure {emeta, eparams=[], mty=Nothing, body=body}
+        
         suspend = Method{mmeta, mheader=suspendHeader, mlocals=[], mbody=Suspend emeta}
         suspendHeader = Header{hmodifiers=[]
                               ,kind=NonStreaming

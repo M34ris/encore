@@ -75,11 +75,13 @@ dispatchFunDecl cdecl@(A.Class{A.cname, A.cfields, A.cmethods}) =
            Seq $ map assignTypeVar classTypeVars,
            (Switch (Var "_m" `Arrow` Nam "id")
             (
-             (if (A.isMainClass cdecl)
-              then ponyMainClause :
-                   methodClauses (filter ((/= ID.Name "main") . A.methodName) cmethods)
-              else methodClauses $ cmethods
-             ))
+             (
+              if (A.isMainClass cdecl)
+              then concat [[closureHandle], ponyMainClause :
+                   methodClauses (filter ((/= ID.Name "main") . A.methodName) cmethods)]
+              else concat [[closureHandle], methodClauses $ cmethods]
+             )
+            )
             (Statement $ Call (Nam "printf") [String "error, got invalid id: %zd", AsExpr $ (Var "_m") `Arrow` (Nam "id")]))]))
      where
        classTypeVars = Ty.getTypeParameters cname
@@ -97,6 +99,12 @@ dispatchFunDecl cdecl@(A.Class{A.cname, A.cfields, A.cmethods}) =
                                           [AsExpr encoreCtxVar,
                                            AsExpr $ (Var "msg") `Arrow` (Nam "argc"),
                                            AsExpr $ (Var "msg") `Arrow` (Nam "argv")]]])
+       closureHandle =
+           (Nam "_ENC__MSG_RUN_CLOSURE",
+            Seq $ [Assign (Decl (Ptr closureWrapper, Var "cw")) (Cast (Ptr closureWrapper) (Var "_m")),
+                   --Statement $ Call closureHandle --arguments here (encore_arg_t value ?)
+                  ])
+           
        methodClauses = concatMap methodClause
 
        methodClause m = (mthdDispatchClause m mArgs) :

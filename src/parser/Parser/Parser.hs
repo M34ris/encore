@@ -195,6 +195,7 @@ reservedNames =
     ,"false"
     ,"for"
     ,"fun"
+    ,"chili" --ADDED
     ,"forward"
     ,"if"
     ,"import"
@@ -937,6 +938,7 @@ expr = notFollowedBy nl >>
      <|> unlessIf
      <|> explicitReturn
      <|> forward
+     <|> chili --ADDED
      <|> yield
      <|> try isEos
      <|> eos
@@ -1330,6 +1332,13 @@ expr = notFollowedBy nl >>
         reserved "forward"
         expr <- parens expression
         return $ Forward (meta pos) expr
+
+      --ADDED
+      chili = do
+        pos <- getPosition
+        reserved "chili"
+        expr <- parens expression
+        return $ Chili (meta pos) expr
 
       closure = do
         indent <- L.indentLevel

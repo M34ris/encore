@@ -547,6 +547,17 @@ data Expr = Skip {emeta :: Meta Expr}
                      eparams :: [ParamDecl],
                      mty :: Maybe Type,
                      body :: Expr}
+          -- ADDED
+          -- | Chili {emeta :: Meta Expr,
+          --          target :: Expr,
+          --          chiliFun :: Expr}
+          -- | Chili {emeta :: Meta Expr,
+          --          target :: Expr,
+          --          eparams :: [ParamDecl],
+          --          mty :: Maybe Type,
+          --          body :: Expr}
+          | Chili {emeta :: Meta Expr,
+                   chiliExpr :: Expr}
           -- TODO: the AST nodes below can be removed as soon as
           -- OldParser.hs gets removed
           | Liftf {emeta :: Meta Expr,

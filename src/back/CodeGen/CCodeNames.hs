@@ -80,6 +80,9 @@ encOnewayMsgT = Typ "encore_oneway_msg_t"
 closure :: CCode Ty
 closure = Ptr $ Typ "closure_t"
 
+closureWrapper :: CCode Ty
+closureWrapper = Typ "encore_cls_wrpr_t"
+
 future :: CCode Ty
 future = Ptr $ Typ "future_t"
 
@@ -450,6 +453,9 @@ futureGetActor = Nam "future_get_actor"
 
 futureChainActor :: CCode Name
 futureChainActor = Nam "future_chain_actor"
+
+handleClosure :: CCode Name
+handleClosure = Nam "handle_closure"
 
 actorSuspend :: CCode Name
 actorSuspend = Nam "actor_suspend"

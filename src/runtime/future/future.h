@@ -5,6 +5,7 @@
 #include "closure.h"
 
 typedef struct future future_t;
+typedef struct encore_cls_wrpr encore_cls_wrpr_t;
 
 extern pony_type_t future_type;
 void future_trace(pony_ctx_t *ctx, void* p);
@@ -76,4 +77,6 @@ void future_register_callback(pony_ctx_t **ctx,
  * puts on hold the processing of this message.
  */
 void future_await(pony_ctx_t **ctx, future_t *fut);
+
+future_t *handle_closure(pony_ctx_t **ctx, encore_cls_wrpr_t *cls);
 #endif

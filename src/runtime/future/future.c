@@ -38,6 +38,13 @@ typedef struct message_entry message_entry_t;
 // Producer -- the actor responsible for fulfilling a future
 // Consumer -- an non-producer actor using a future
 
+struct encore_cls_wrpr
+{
+  encore_fut_msg_t* fut;
+  closure_t* c;
+  encore_arg_t args;
+};
+
 typedef enum responsibility_t
 {
   // A closure that should be run by the producer
@@ -193,6 +200,14 @@ future_t *future_mk(pony_ctx_t **ctx, pony_type_t *type)
 static inline encore_arg_t run_closure(pony_ctx_t **ctx, closure_t *c, encore_arg_t value)
 {
   return closure_call(ctx, c, (value_t[1]) { value });
+}
+
+future_t *handle_closure(pony_ctx_t **ctx, encore_cls_wrpr_t *cls)
+{
+  future_t *fut = future_mk(ctx, ENCORE_PRIMITIVE);
+  fut->value = run_closure(ctx, cls->c, cls->args);
+  fut->fulfilled = true;
+  return fut;
 }
 
 bool future_fulfilled(future_t *fut)
