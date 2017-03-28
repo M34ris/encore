@@ -457,6 +457,9 @@ futureChainActor = Nam "future_chain_actor"
 handleClosure :: CCode Name
 handleClosure = Nam "handle_closure"
 
+bestowWrapperMk :: CCode Name
+bestowWrapperMk = Nam "bestow_wrapper_mk"
+
 actorSuspend :: CCode Name
 actorSuspend = Nam "actor_suspend"
 

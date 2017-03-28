@@ -45,6 +45,47 @@ struct encore_cls_wrpr
   encore_arg_t args;
 };
 
+struct bestow_wrapper
+{
+  // The actor that bestowed the object
+  pony_actor_t *actor;
+  // The field in the actor
+  // void *object;
+  encore_arg_t *object;
+  future_t     *fut;
+  pony_type_t  *type;
+};
+
+static void bestow_finalizer(bestow_wrapper_t *bw)
+{
+  pony_ctx_t *ctx = pony_ctx();
+  // future_gc_recv_value(ctx, bw);
+  pony_gc_recv(ctx);
+
+  // future_gc_trace_value(ctx, bw);
+  assert(bw);
+  encore_arg_t value = *(bw->object);
+  if (bw->type == ENCORE_ACTIVE) {
+    encore_trace_actor(ctx, value.p);
+  } else if (bw->type != ENCORE_PRIMITIVE) {
+    encore_trace_object(ctx, value.p, bw->type->trace);
+  }
+  
+  ponyint_gc_handlestack(ctx);  
+  // ENC_DTRACE2(FUTURE_DESTROY, (uintptr_t) cctx, (uintptr_t) fut);
+}
+
+bestow_wrapper_t *bestow_wrapper_mk(pony_ctx_t **ctx, pony_type_t *type, encore_arg_t *object)
+{
+  pony_ctx_t *cctx = *ctx;
+  // future_t *fut = future_mk(ctx, type);
+  bestow_wrapper_t *bw = pony_alloc_final(cctx, sizeof(bestow_wrapper_t),
+                                          (void *)&bestow_finalizer);
+  *bw = (bestow_wrapper_t) { .actor = cctx->current, .object = object,
+                             .fut = future_mk(ctx, type), .type = type};
+  return bw;
+}
+
 typedef enum responsibility_t
 {
   // A closure that should be run by the producer
@@ -202,12 +243,10 @@ static inline encore_arg_t run_closure(pony_ctx_t **ctx, closure_t *c, encore_ar
   return closure_call(ctx, c, (value_t[1]) { value });
 }
 
-future_t *handle_closure(pony_ctx_t **ctx, encore_cls_wrpr_t *cls)
+void handle_closure(pony_ctx_t **ctx, encore_cls_wrpr_t *cls)
 {
-  future_t *fut = future_mk(ctx, ENCORE_PRIMITIVE);
-  fut->value = run_closure(ctx, cls->c, cls->args);
-  fut->fulfilled = true;
-  return fut;
+  future_t* _fut = (cls->fut)->_fut;
+  future_fulfil(ctx, _fut, run_closure(ctx, cls->c, cls->args));
 }
 
 bool future_fulfilled(future_t *fut)

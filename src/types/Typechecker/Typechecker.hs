@@ -1198,49 +1198,10 @@ instance Checkable Expr where
     -- ---------------------
     --  E |- a.chili(Closure) : t
 
-    doTypecheck chili@(Chili {chiliExpr}) =
-        do eExpr <- typecheck chiliExpr
-           return $ setType unitType chili {chiliExpr = eExpr}
-
-    -- doTypecheck chili@(Chili {target, eparams, mty, body}) =  
-    --     do eTarget <- typecheck target
-    --        let returns = Util.filter isReturn body
-    --        eEparams <- mapM typecheck eparams
-    --        mty' <- mapM resolveType mty
-    --        eBody <- case mty' of
-    --           Just expected ->
-    --              if isUnitType expected then
-    --                 local (addParams eEparams) $
-    --                        typecheckNotNull body
-    --              else
-    --                 local (addParams eEparams) $
-    --                        body `hasType` expected
-    --           Nothing ->
-    --              local (addParams eEparams) $
-    --                     typecheckNotNull body
-    --        let paramNames = map pname eEparams
-    --           capturedVariables = map (qnlocal . fst) $
-    --                               Util.freeVariables (map qLocal paramNames) eBody
-
-    --        shadowingParams <- filterM doesShadow paramNames
-    --        unless (null shadowingParams) $
-    --           tcError $ TypeVariableAndVariableCommonNameError shadowingParams
-
-    --        local (addParams eEparams . makeImmutable capturedVariables) $
-    --               typecheck eBody -- Check for mutation of captured variables
-    --        let returnType = AST.getType eBody
-    --           ty = arrowType (map ptype eEparams) returnType
-    --        return $ setType ty closure {target = eTarget, body = eBody, mty = mty', eparams = eEparams}
-    --        where
-    --           doesShadow paramName = do
-    --              typeParams <- asks typeParameters
-    --              return $ paramName `elem` map (Name . getId) typeParams
-
-        --    eClosure <- doTypecheck Closure{eparams = eparams
-        --                       ,mty = mty
-        --                       ,body = body}
-        --    let ty = AST.getType eClosure
-        --    return $ setType ty chili {target = eTarget, mty = eClosure.mty, eparams = eClosure.params, body = eClosure.body}
+    doTypecheck bestow@(Bestow {bestowExpr}) =
+        do eExpr <- typecheck bestowExpr
+           let returnType = AST.getType eExpr
+           return $ setType returnType bestow {bestowExpr = eExpr}
 
     --    f : Fut T
     --    ------------------ :: await

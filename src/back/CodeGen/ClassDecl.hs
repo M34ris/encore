@@ -102,8 +102,8 @@ dispatchFunDecl cdecl@(A.Class{A.cname, A.cfields, A.cmethods}) =
        closureHandle =
            (Nam "_ENC__MSG_RUN_CLOSURE",
             Seq $ [Assign (Decl (Ptr closureWrapper, Var "cw")) (Cast (Ptr closureWrapper) (Var "_m")),
-                   --Statement $ Call closureHandle --arguments here (encore_arg_t value ?)
-                  ])
+                   Statement $ Call handleClosure [AsExpr encoreCtxVar, AsExpr $ Var "cw"]])
+                   -- gcRecv mParams (Statement $ Call ponyTraceObject (includeCtx [futVar, futureTypeRecName `Dot` Nam "trace")])])
            
        methodClauses = concatMap methodClause
 

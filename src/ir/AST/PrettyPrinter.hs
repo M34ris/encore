@@ -272,21 +272,7 @@ ppExpr MessageSend {target, name, args, typeArguments} =
     maybeParens target <> "!" <> ppName name <>
       withTypeArguments typeArguments <>
       parens (commaSep (map ppExpr args))
---ADDED
-ppExpr Chili {chiliExpr} = "chili" <> parens (ppExpr chiliExpr)
--- ppExpr Chili {target, chiliFun} =
---     maybeParens target <> "!" <> "chili" <> parens (ppExpr chiliFun)
--- ppExpr Chili {target, eparams, mty, body=b@(Seq {})} =
---     maybeParens target <> "!" <> "chili" <> parens <>
---     "fun" <+> parens (commaSep (map ppParamDecl eparams)) <+> returnType mty $+$
---        indent (ppBody b) $+$
---     "end"
---   where
---     returnType Nothing = ""
---     returnType (Just t) = ":" <+> ppType t
--- ppExpr Chili {target, eparams, body} =
---     maybeParens target <> "!" <> "chili" <> parens <>
---     "fun" <+> parens (commaSep (map ppParamDecl eparams)) <+> "=>" <+> ppExpr body
+ppExpr Bestow {bestowExpr} = "bestow" <> parens (ppExpr bestowExpr) --ADDED
 ppExpr Liftf {val} = "liftf" <> parens (ppExpr val)
 ppExpr Liftv {val} = "liftv" <> parens (ppExpr val)
 ppExpr PartyJoin {val} = "join" <> parens (ppExpr val)
