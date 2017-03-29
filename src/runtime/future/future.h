@@ -81,6 +81,8 @@ void future_await(pony_ctx_t **ctx, future_t *fut);
 
 bestow_wrapper_t *bestow_wrapper_mk(pony_ctx_t **ctx, pony_type_t *type, encore_arg_t *object);
 
+void bestow_get_target(bestow_wrapper_t *bw);
+
 void handle_closure(pony_ctx_t **ctx, encore_cls_wrpr_t *cls);
 
 #endif

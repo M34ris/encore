@@ -1200,8 +1200,16 @@ instance Checkable Expr where
 
     doTypecheck bestow@(Bestow {bestowExpr}) =
         do eExpr <- typecheck bestowExpr
-           let returnType = AST.getType eExpr
-           return $ setType returnType bestow {bestowExpr = eExpr}
+           -- thisE <- typecheck thisName
+           let ty = AST.getType eExpr
+           -- let thisTy = AST.getType thisName
+           -- unless (isClosure eExpr) $
+           --        pushError eExpr $ ExpectingOtherTypeError "a closure" ty
+           -- unless ((isActiveClassType ty) && (isThisAccess eExpr)) $
+           -- fdecl <- findField ty name
+           -- unless (isValField eExpr) $
+           --           pushError eExpr $ ExpectingOtherTypeError "a field in an active class" ty
+           return $ setType ty bestow {bestowExpr = eExpr}
 
     --    f : Fut T
     --    ------------------ :: await

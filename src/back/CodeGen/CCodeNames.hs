@@ -454,11 +454,14 @@ futureGetActor = Nam "future_get_actor"
 futureChainActor :: CCode Name
 futureChainActor = Nam "future_chain_actor"
 
-handleClosure :: CCode Name
-handleClosure = Nam "handle_closure"
+bestow :: CCode Ty
+bestow = Ptr $ Typ "bestow_wrapper_t"
 
 bestowWrapperMk :: CCode Name
 bestowWrapperMk = Nam "bestow_wrapper_mk"
+
+handleClosure :: CCode Name
+handleClosure = Nam "handle_closure"
 
 actorSuspend :: CCode Name
 actorSuspend = Nam "actor_suspend"
