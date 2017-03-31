@@ -81,10 +81,13 @@ void future_register_callback(pony_ctx_t **ctx,
  */
 void future_await(pony_ctx_t **ctx, future_t *fut);
 
-bestow_wrapper_t *bestow_wrapper_mk(pony_ctx_t **ctx, pony_type_t *type, encore_arg_t *object);
+bestow_wrapper_t *bestow_wrapper_mk(pony_ctx_t **ctx, pony_type_t *type, encore_arg_t object);
 
-void bestow_get_target(bestow_wrapper_t *bw);
+pony_actor_t *bestow_get_target(bestow_wrapper_t *bw);
 
-void handle_closure(pony_ctx_t **ctx, encore_cls_wrpr_t *cls);
+encore_arg_t bestow_get_object(bestow_wrapper_t *bw);
+
+// void handle_closure(pony_ctx_t **ctx, encore_cls_wrpr_t *cls);
+void handle_closure(pony_ctx_t **ctx, closure_t *c);
 
 #endif

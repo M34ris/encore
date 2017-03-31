@@ -460,6 +460,12 @@ bestow = Ptr $ Typ "bestow_wrapper_t"
 bestowWrapperMk :: CCode Name
 bestowWrapperMk = Nam "bestow_wrapper_mk"
 
+bestowGetTarget :: CCode Name
+bestowGetTarget = Nam "bestow_get_target"
+
+bestowGetObject :: CCode Name
+bestowGetObject = Nam "bestow_get_object"
+
 handleClosure :: CCode Name
 handleClosure = Nam "handle_closure"
 

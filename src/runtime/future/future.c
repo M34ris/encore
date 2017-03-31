@@ -48,10 +48,10 @@ struct encore_cls_wrpr
 struct bestow_wrapper
 {
   // The actor that bestowed the object
-  pony_actor_t *actor;
+  pony_actor_t *owner;
   // The field in the actor
   // void *object;
-  encore_arg_t *object;
+  encore_arg_t  object; // Should be a (void*) according to encore.h
   future_t     *fut;
   pony_type_t  *type;
 };
@@ -64,7 +64,7 @@ static void bestow_finalizer(bestow_wrapper_t *bw)
 
   // future_gc_trace_value(ctx, bw);
   assert(bw);
-  encore_arg_t value = *(bw->object);
+  encore_arg_t value = (bw->object);
   if (bw->type == ENCORE_ACTIVE) {
     encore_trace_actor(ctx, value.p);
   } else if (bw->type != ENCORE_PRIMITIVE) {
@@ -75,15 +75,25 @@ static void bestow_finalizer(bestow_wrapper_t *bw)
   // ENC_DTRACE2(FUTURE_DESTROY, (uintptr_t) cctx, (uintptr_t) fut);
 }
 
-bestow_wrapper_t *bestow_wrapper_mk(pony_ctx_t **ctx, pony_type_t *type, encore_arg_t *object)
+bestow_wrapper_t *bestow_wrapper_mk(pony_ctx_t **ctx, pony_type_t *type, encore_arg_t object)
 {
   pony_ctx_t *cctx = *ctx;
   // future_t *fut = future_mk(ctx, type);
   bestow_wrapper_t *bw = pony_alloc_final(cctx, sizeof(bestow_wrapper_t),
                                           (void *)&bestow_finalizer);
-  *bw = (bestow_wrapper_t) { .actor = cctx->current, .object = object,
+  *bw = (bestow_wrapper_t) { .owner = cctx->current, .object = object,
                              .fut = future_mk(ctx, type), .type = type};
   return bw;
+}
+
+pony_actor_t *bestow_get_target(bestow_wrapper_t *bw)
+{
+  return bw->owner;
+}
+
+encore_arg_t bestow_get_object(bestow_wrapper_t *bw)
+{
+  return bw->object;
 }
 
 void bestow_trace(pony_ctx_t *ctx, void* p)
@@ -256,10 +266,12 @@ static inline encore_arg_t run_closure(pony_ctx_t **ctx, closure_t *c, encore_ar
   return closure_call(ctx, c, (value_t[1]) { value });
 }
 
-void handle_closure(pony_ctx_t **ctx, encore_cls_wrpr_t *cls)
+void handle_closure(pony_ctx_t **ctx, closure_t *c)
 {
-  future_t* _fut = (cls->fut)->_fut;
-  future_fulfil(ctx, _fut, run_closure(ctx, cls->c, cls->args));
+  // future_t* _fut = (cls->fut)->_fut;
+  // future_fulfil(ctx, _fut, run_closure(ctx, cls->c, cls->args));
+  encore_arg_t hack = (encore_arg_t) NULL;
+  run_closure(ctx, c, hack);
 }
 
 bool future_fulfilled(future_t *fut)

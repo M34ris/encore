@@ -32,6 +32,40 @@ optimizerPasses :: [Expr -> Expr]
 optimizerPasses = [constantFolding, constructors,
                    sugarPrintedStrings, tupleMaybeIdComparison]
 
+-- bestowMessageSend :: Expr -> Expr
+-- bestowMessageSend = extend bestowSend
+--     where
+--       bestowSend e@(MessageSend {emeta, typeArguments, target, name, args})
+--           | (isBestowType . getType) target =
+--               MessageSend {emeta = emeta,
+--                            name = runClosure,
+--                            target = bestowOwner,
+--                            args = args,
+--                            typeArguments = []}
+--           | otherwise = e
+--       bestowSend e = e
+      
+--       -- runClosure = Embed _ENC__MSG_RUN_CLOSURE
+--       runClosure = runClosureName
+--       bestowClosure = (Closure {emeta = emeta,
+--                                 eparams = [],
+--                                 mty = (Just (getType bestowObject)),
+--                                 body = bestowBody})
+--       bestowOwner = FunctionCall {emeta = emeta,
+--                                   typeArguments = [],
+--                                   qname = "bestow_get_target",
+--                                   args = target}
+--       -- bestowObject = Call bestowGetObject [target]
+--       bestowObject = FunctionCall {emeta = emeta,
+--                                    typeArguments = [],
+--                                    qname = "bestow_get_object",
+--                                    args = target}
+--       bestowBody = MethodCall{emeta = emeta,
+--                               typeArguments = [],
+--                               target = bestowObject,
+--                               name = name,
+--                               args = []}
+
 -- Note that this is not intended as a serious optimization, but
 -- as an example to how an optimization could be made. As soon as
 -- there is a serious optimization in place, please remove this

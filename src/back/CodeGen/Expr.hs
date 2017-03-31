@@ -614,12 +614,17 @@ instance Translatable A.Expr (State Ctx.Context (CCode Lval, CCode Stat)) where
 
   translate call@A.MessageSend{A.emeta, A.target, A.name, A.args, A.typeArguments}
     | Util.isStatement call = delegateUseM callTheMethodOneway Nothing
+    -- | isBestow = 
     | isActive && isStream = delegateUseM callTheMethodStream (Just "stream")
     | otherwise = delegateUseM callTheMethodFuture (Just "fut")
     where
       targetTy = A.getType target
       isActive = Ty.isActiveClassType targetTy
+      -- isBestow = Ty.isBestowType targetTy
       isStream = Ty.isStreamType $ A.getType call
+
+      -- bestowClosure = Call (Call bestowGetTarget [A.target])
+      -- closureBody = 
 
       delegateUseM msgSend sym = do
         (ntarget, ttarget) <- translate target

@@ -179,6 +179,7 @@ typ = makeExprParser singleType opTable
                  [typeOp "+" disjunctiveType],
                  [typeConstructor "Maybe" maybeType
                  ,typeConstructor "Fut" futureType
+                 ,typeConstructor "Bestow" bestowType
                  ,typeConstructor "Par" parType
                  ,typeConstructor "Stream" streamType
                  ],

@@ -367,7 +367,7 @@ typ = makeExprParser singleType opTable
       range = do
         reserved "Range"
         return rangeType
-      builtin = maybe <|> fut <|> par <|> stream
+      builtin = maybe <|> fut <|> bestow <|> par <|> stream
         where
           builtin' t r = liftM t (reserved r >> brackets typ)
           maybe  = builtin' maybeType "Maybe"
