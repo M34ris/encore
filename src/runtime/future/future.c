@@ -86,6 +86,13 @@ bestow_wrapper_t *bestow_wrapper_mk(pony_ctx_t **ctx, pony_type_t *type, encore_
   return bw;
 }
 
+void bestow_trace(pony_ctx_t *ctx, void* p)
+{
+  (void) ctx;
+  (void) p;
+  // TODO
+}
+
 typedef enum responsibility_t
 {
   // A closure that should be run by the producer
@@ -154,6 +161,12 @@ pony_type_t future_type = {
   .id = ID_FUTURE,
   .size = sizeof(struct future),
   .trace = &future_trace
+};
+
+pony_type_t bestow_type = {
+  .id = ID_BESTOW,
+  .size = sizeof(struct bestow_wrapper),
+  .trace = &bestow_trace
 };
 
 pony_type_t *future_get_type(future_t *fut){

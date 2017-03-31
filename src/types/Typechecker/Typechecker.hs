@@ -1193,23 +1193,18 @@ instance Checkable Expr where
     doTypecheck suspend@(Suspend {}) =
         return $ setType unitType suspend
 
-    -- ADDED
-    --  E |- a : Active class
-    -- ---------------------
-    --  E |- a.chili(Closure) : t
-
+    --    f : Bestow T
+    --    ------------------ :: bestow
+    --    bestow f : T
     doTypecheck bestow@(Bestow {bestowExpr}) =
         do eExpr <- typecheck bestowExpr
-           -- thisE <- typecheck thisName
+           Just (_, thisType) <- findVar $ qLocal thisName
            let ty = AST.getType eExpr
-           -- let thisTy = AST.getType thisName
            -- unless (isClosure eExpr) $
            --        pushError eExpr $ ExpectingOtherTypeError "a closure" ty
-           -- unless ((isActiveClassType ty) && (isThisAccess eExpr)) $
-           -- fdecl <- findField ty name
-           -- unless (isValField eExpr) $
-           --           pushError eExpr $ ExpectingOtherTypeError "a field in an active class" ty
-           return $ setType ty bestow {bestowExpr = eExpr}
+           unless ((isActiveClassType thisType)) $
+                     pushError eExpr $ ExpectingOtherTypeError "an object from an active class" ty
+           return $ setType (bestowType ty) bestow {bestowExpr = eExpr}
 
     --    f : Fut T
     --    ------------------ :: await

@@ -57,6 +57,7 @@ typedef union { encore_arg_t_content; } encore_arg_t;
 typedef enum {
   ID_CLOSURE = 0,
   ID_FUTURE,
+  ID_BESTOW,
   ID_SCONS,
   ID_ARRAY,
   ID_OPTION,

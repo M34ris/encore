@@ -33,6 +33,7 @@ instance Translatable Ty.Type (CCode Ty) where
         | Ty.isArrowType ty      = closure
         | Ty.isTypeVar ty        = encoreArgT
         | Ty.isFutureType ty     = future
+        | Ty.isBestowType ty     = bestow
         | Ty.isStreamType ty     = stream
         | Ty.isArrayType ty      = array
         | Ty.isRangeType ty      = range
@@ -48,6 +49,7 @@ runtimeType ty
     | Ty.isPassiveClassType ty = Amp $ runtimeTypeName ty
     | Ty.isFutureType ty ||
       Ty.isStreamType ty = Amp futureTypeRecName
+    | Ty.isBestowType ty = Amp bestowTypeRecName
     | Ty.isArrowType ty  = Amp closureTypeRecName
     | Ty.isArrayType ty  = Amp arrayTypeRecName
     | Ty.isRangeType ty  = Amp rangeTypeRecName

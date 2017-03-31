@@ -7,6 +7,8 @@ module Types(
             ,isArrowType
             ,futureType
             ,isFutureType
+            ,bestowType
+            ,isBestowType
             ,parType
             ,isParType
             ,streamType
@@ -171,6 +173,7 @@ data Type = Unresolved{refInfo :: RefInfo}
                      ,resultType :: Type
                      }
           | FutureType{resultType :: Type}
+          | BestowType{resultType :: Type}
           | ParType{resultType :: Type}
           | StreamType{resultType :: Type}
           | ArrayType{resultType :: Type}
@@ -191,7 +194,7 @@ data Type = Unresolved{refInfo :: RefInfo}
             deriving(Eq)
 
 hasResultType x
-  | isArrowType x || isFutureType x || isParType x ||
+  | isArrowType x || isFutureType x || isBestowType x || isParType x ||
     isStreamType x || isArrayType x || isMaybeType x = True
   | otherwise = False
 
@@ -286,6 +289,7 @@ instance Show Type where
         where
           args = intercalate ", " (map show argTypes)
     show FutureType{resultType} = "Fut" ++ brackets resultType
+    show BestowType{resultType} = "Bestow" ++ brackets resultType
     show ParType{resultType}    = "Par" ++ brackets resultType
     show StreamType{resultType} = "Stream" ++ brackets resultType
     show ArrayType{resultType}  = brackets resultType
@@ -329,6 +333,7 @@ showWithKind ty = kind ty ++ " " ++ show ty
     kind TypeVar{}                     = "polymorphic type"
     kind ArrowType{}                   = "function type"
     kind FutureType{}                  = "future type"
+    kind BestowType{}                  = "bestow type"
     kind ParType{}                     = "parallel type"
     kind StreamType{}                  = "stream type"
     kind RangeType{}                   = "range type"
@@ -345,6 +350,7 @@ hasSameKind :: Type -> Type -> Bool
 hasSameKind ty1 ty2
   | areBoth isMaybeType ||
     areBoth isFutureType ||
+    areBoth isBestowType ||
     areBoth isParType ||
     areBoth isArrayType ||
     areBoth isStreamType = getResultType ty1 `hasSameKind` getResultType ty2
@@ -369,6 +375,8 @@ typeComponents arrow@(ArrowType typeParams argTys ty) =
              typeComponents ty)
 typeComponents fut@(FutureType ty) =
     fut : typeComponents ty
+typeComponents bestow@(BestowType ty) =
+    bestow : typeComponents ty
 typeComponents par@(ParType ty) =
     par : typeComponents ty
 typeComponents ref@(Unresolved{refInfo}) =
@@ -414,6 +422,8 @@ typeMap f ty@ArrowType{argTypes, resultType} =
     f ty{argTypes = map (typeMap f) argTypes
         ,resultType = typeMap f resultType}
 typeMap f ty@FutureType{resultType} =
+    f ty{resultType = typeMap f resultType}
+typeMap f ty@BestowType{resultType} =
     f ty{resultType = typeMap f resultType}
 typeMap f ty@ParType{resultType} =
     f ty{resultType = typeMap f resultType}
@@ -467,7 +477,7 @@ typeMapM f ty@TypeSynonym{refInfo, resolvesTo} = do
  resolvesTo' <- typeMapM f resolvesTo
  f ty{refInfo = refInfo', resolvesTo = resolvesTo'}
 typeMapM f ty
-  | isFutureType ty || isParType ty || isStreamType ty ||
+  | isFutureType ty || isBestowType ty || isParType ty || isStreamType ty ||
     isArrayType ty || isMaybeType ty = typeMapMResultType f ty
   | otherwise = f ty
 
@@ -648,6 +658,10 @@ isArrowType _ = False
 futureType = FutureType
 isFutureType FutureType {} = True
 isFutureType _ = False
+
+bestowType = BestowType
+isBestowType BestowType {} = True
+isBestowType _ = False
 
 maybeType = MaybeType
 isMaybeType MaybeType {} = True

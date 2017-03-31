@@ -526,6 +526,9 @@ streamTraceFn = Nam "stream_trace"
 futureTypeRecName :: CCode Name
 futureTypeRecName = Nam $ "future_type"
 
+bestowTypeRecName :: CCode Name
+bestowTypeRecName = Nam $ "bestow_type"
+
 closureTypeRecName :: CCode Name
 closureTypeRecName = Nam $ "closure_type"
 

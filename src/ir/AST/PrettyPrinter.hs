@@ -272,7 +272,7 @@ ppExpr MessageSend {target, name, args, typeArguments} =
     maybeParens target <> "!" <> ppName name <>
       withTypeArguments typeArguments <>
       parens (commaSep (map ppExpr args))
-ppExpr Bestow {bestowExpr} = "bestow" <> parens (ppExpr bestowExpr) --ADDED
+ppExpr Bestow {bestowExpr} = "bestow" <> parens (ppExpr bestowExpr)
 ppExpr Liftf {val} = "liftf" <> parens (ppExpr val)
 ppExpr Liftv {val} = "liftv" <> parens (ppExpr val)
 ppExpr PartyJoin {val} = "join" <> parens (ppExpr val)

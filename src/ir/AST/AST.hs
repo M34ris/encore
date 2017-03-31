@@ -547,7 +547,6 @@ data Expr = Skip {emeta :: Meta Expr}
                      eparams :: [ParamDecl],
                      mty :: Maybe Type,
                      body :: Expr}
-          -- ADDED
           | Bestow {emeta :: Meta Expr,
                     bestowExpr :: Expr}
           -- TODO: the AST nodes below can be removed as soon as

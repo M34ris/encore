@@ -5,10 +5,12 @@
 #include "closure.h"
 
 typedef struct future future_t;
+extern pony_type_t future_type;
+
 typedef struct encore_cls_wrpr encore_cls_wrpr_t;
 typedef struct bestow_wrapper bestow_wrapper_t;
+extern pony_type_t bestow_type;
 
-extern pony_type_t future_type;
 void future_trace(pony_ctx_t *ctx, void* p);
 
 /*

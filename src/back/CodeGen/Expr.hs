@@ -63,6 +63,7 @@ typeToPrintfFstr ty
     | Ty.isCapabilityType ty   = "(" ++ show ty ++ ")@%p"
     | Ty.isUnionType ty        = "(" ++ show ty ++ ")@%p"
     | Ty.isFutureType ty       = "Fut@%p"
+    | Ty.isBestowType ty       = "Bestow@%p"
     | Ty.isStreamType ty       = "Stream@%p"
     | Ty.isParType ty          = "Par@%p"
     | Ty.isArrowType ty        = "(" ++ show ty ++ ")@%p"
@@ -1041,10 +1042,8 @@ instance Translatable A.Expr (State Ctx.Context (CCode Lval, CCode Stat)) where
     error $ "Expr.hs: Target of forward is not method call or future chain: '" ++
             show forwardExpr ++ "'"
 
-  -- ADDED
   -- TODO:
-  -- 1. Check that this is an active object
-  -- 2. Check that the bestowed element is a field in the class
+  -- 1. Checks on the bestowed object
   translate bestow@(A.Bestow{A.bestowExpr}) =
       do (mval, tval) <- translate bestowExpr
          tmp <- Ctx.genSym
