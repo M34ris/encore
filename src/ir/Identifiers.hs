@@ -71,9 +71,6 @@ thisName = Name "this"
 constructorName :: Name
 constructorName = Name "init"
 
-runClosureName :: Name
-runClosureName = Name "_ENC__MSG_RUN_CLOSURE"
-
 -- | The supported binary operators
 data BinaryOp = AND
               | OR

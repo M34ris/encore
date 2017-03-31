@@ -29,42 +29,41 @@ optimizeProgram p@(Program{classes, traits, functions}) =
 
 -- | The functions in this list will be performed in order during optimization
 optimizerPasses :: [Expr -> Expr]
-optimizerPasses = [constantFolding, constructors,
+optimizerPasses = [constantFolding, constructors, bestowMessageSend,
                    sugarPrintedStrings, tupleMaybeIdComparison]
 
--- bestowMessageSend :: Expr -> Expr
--- bestowMessageSend = extend bestowSend
---     where
---       bestowSend e@(MessageSend {emeta, typeArguments, target, name, args})
---           | (isBestowType . getType) target =
---               MessageSend {emeta = emeta,
---                            name = runClosure,
---                            target = bestowOwner,
---                            args = args,
---                            typeArguments = []}
---           | otherwise = e
---       bestowSend e = e
-      
---       -- runClosure = Embed _ENC__MSG_RUN_CLOSURE
---       runClosure = runClosureName
---       bestowClosure = (Closure {emeta = emeta,
---                                 eparams = [],
---                                 mty = (Just (getType bestowObject)),
---                                 body = bestowBody})
---       bestowOwner = FunctionCall {emeta = emeta,
---                                   typeArguments = [],
---                                   qname = "bestow_get_target",
---                                   args = target}
---       -- bestowObject = Call bestowGetObject [target]
---       bestowObject = FunctionCall {emeta = emeta,
---                                    typeArguments = [],
---                                    qname = "bestow_get_object",
---                                    args = target}
---       bestowBody = MethodCall{emeta = emeta,
---                               typeArguments = [],
---                               target = bestowObject,
---                               name = name,
---                               args = []}
+bestowMessageSend :: Expr -> Expr
+bestowMessageSend = extend bestowSend
+    where
+      bestowSend e@(MessageSend {emeta, typeArguments, target, name, args})
+          | (isActiveClassType ty || isSharedClassType ty) = e 
+          | (isBestowType ty) =
+              MessageSend {emeta = emeta,
+                           name = runClosure,
+                           target = bestowOwner,
+                           args = [bestowClosure],
+                           typeArguments = []}
+              where
+                ty = getType target
+                runClosure = Name "_ENC__MSG_RUN_CLOSURE"
+                bestowClosure = (Closure {emeta = emeta,
+                                          eparams = [],
+                                          mty = (Just (getType bestowObject)),
+                                          body = bestowBody})
+                bestowBody = MethodCall {emeta = emeta,
+                                         typeArguments = [],
+                                         target = bestowObject,
+                                         name = name,
+                                         args = []}
+                bestowOwner = FunctionCall {emeta = emeta,
+                                            typeArguments = [],
+                                            qname = QName{qnspace = Nothing, qnsource = Nothing, qnlocal = Name "bestow_get_target"},
+                                            args = [target]}
+                bestowObject = FunctionCall {emeta = emeta,
+                                             typeArguments = [],
+                                             qname = QName{qnspace = Nothing, qnsource = Nothing, qnlocal = Name "bestow_get_object"},
+                                             args = [target]}
+      bestowSend e = e
 
 -- Note that this is not intended as a serious optimization, but
 -- as an example to how an optimization could be made. As soon as

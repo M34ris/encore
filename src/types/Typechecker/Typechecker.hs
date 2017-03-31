@@ -675,7 +675,8 @@ instance Checkable Expr where
             | isMessageSend m = do
               errorInitMethod targetType (name m)
               unless (isActiveClassType targetType ||
-                      isSharedClassType targetType) $
+                      isSharedClassType targetType ||
+                      isBestowType targetType) $
                 tcError $ NonSendableTargetError targetType
             | isMethodCall m = do
               when (isRefType targetType) $
