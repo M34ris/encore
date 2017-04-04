@@ -364,6 +364,10 @@ findMethodWithCalledType ty name
         unless (all (==calledType) (map snd results)) $
                tcError $ UnionMethodAmbiguityError ty name
         return result
+    | isBestowType ty = do
+        (header, ty') <- findMethodWithCalledType (getResultType ty) name
+        -- return (header, bestowType ty')
+        return (header, (getResultType ty))
     | otherwise = do
         isKnown <- isKnownRefType ty
         unless isKnown $

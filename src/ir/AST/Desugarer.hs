@@ -29,7 +29,7 @@ desugarProgram p@(Program{traits, classes, functions}) =
   -- Then the Actor trait is in place, this desugaring step will be changed
   -- so that the Actor trait is included instead
     desugarClass c@(Class{cmeta, cmethods})
-      | isActive c = c{cmethods = map desugarMethod (await:suspend:cmethods)}
+      | isActive c = c{cmethods = map desugarMethod (await:suspend:perform:cmethods)}
       where
         await = Method{mmeta
                       ,mheader=awaitHeader
@@ -42,6 +42,23 @@ desugarProgram p@(Program{traits, classes, functions}) =
                             ,htype=unitType
                             ,hparams=[awaitParam]}
         awaitParam = Param{pmeta, pmut=Val, pname=Name "f", ptype=futureType $ typeVar "_t"}
+        perform = Method{mmeta, mheader=performHeader, mlocals=[], mbody=body}
+          where
+            body = FunctionCall {emeta = emeta,
+                                 typeArguments = [],
+                                 qname = QName{qnspace = Nothing, qnsource = Nothing, qnlocal = Name "handle_closure"},
+                                 args = [(VarAccess emeta (qName "_ctx")), (VarAccess emeta (qName "_enc__arg_c"))]}
+            -- body = Embed {emeta = emeta,
+            --               ty = unitType,
+            --               embedded = [("handle_closure(_ctx, _enc__arg_c)", (VarAccess emeta (qName "_ctx")))]}
+            -- body = Embed emeta intType [("handle_closure(_ctx, _enc__arg_c)", Return emeta (IntLiteral (cloneMeta emeta) 1))]
+        performHeader = Header{hmodifiers=[]
+                              ,kind=NonStreaming
+                              ,htypeparams=[]
+                              ,hname=Name "perform"
+                              ,htype=unitType
+                              ,hparams=[performParam]}
+        performParam = Param{pmeta, pmut=Val, pname=Name "c", ptype=arrowType [unitType] unitType}
         suspend = Method{mmeta, mheader=suspendHeader, mlocals=[], mbody=Suspend emeta}
         suspendHeader = Header{hmodifiers=[]
                               ,kind=NonStreaming

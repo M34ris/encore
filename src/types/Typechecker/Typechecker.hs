@@ -590,11 +590,15 @@ instance Checkable Expr where
     doTypecheck mcall
       | isMethodCallOrMessageSend mcall = do
           eTarget <- typecheck (target mcall)
-          let targetType = AST.getType eTarget
+          let tty = AST.getType eTarget
+              -- targetType = getBestowType tty
+              targetType = tty
               methodName = name mcall
 
           isKnown <- isKnownRefType targetType
-          methodResult <- if isKnown
+          methodResult <- if isBestowType targetType
+                          then asks $ methodLookup (getResultType targetType) methodName
+                          else if isKnown
                           then asks $ methodLookup targetType methodName
                           else return Nothing
 
