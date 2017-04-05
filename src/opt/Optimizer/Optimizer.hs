@@ -37,15 +37,19 @@ bestowMessageSend = extend bestowSend
     where
       bestowSend e@(MessageSend {emeta, typeArguments, target, name, args})
         | (isBestowType ty) =
-              MessageSend {emeta = emeta,
-                           name = runClosure,
-                           target = bestowOwner,
-                           args = [bestowClosure],
-                           typeArguments = []}
+          Seq emeta [Embed emeta unitType [("pony_actor_t *owner = ", bestowOwner)],
+                     MessageSend {emeta = emeta,
+                                  name = runClosure,
+                                  target = (VarAccess emeta (qName "owner")),
+                                  args = [bestowClosure],
+                                  typeArguments = []}]
+          
+          -- Seq $ [Assign (Decl (closure, Var "cw")) (Cast (closure) (Var "_m")),
+          --          Statement $ Call handleClosure [AsExpr encoreCtxVar, AsExpr $ Var "cw"]])
+          
         | otherwise = e
         where
           ty = getType target
-          -- runClosure = Name "_ENC__MSG_RUN_CLOSURE"
           runClosure = Name "perform"
           bestowClosure = (Closure {emeta = emeta,
                                     eparams = [],
@@ -64,6 +68,7 @@ bestowMessageSend = extend bestowSend
                                        typeArguments = [],
                                        qname = QName{qnspace = Nothing, qnsource = Nothing, qnlocal = Name "bestow_get_object"},
                                        args = [target]}
+          body = Embed emeta unitType [("bestow_get_target();", Skip emeta)]
       bestowSend e = e
 
 -- Note that this is not intended as a serious optimization, but

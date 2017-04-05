@@ -614,17 +614,26 @@ instance Translatable A.Expr (State Ctx.Context (CCode Lval, CCode Stat)) where
 
   translate call@A.MessageSend{A.emeta, A.target, A.name, A.args, A.typeArguments}
     | Util.isStatement call = delegateUseM callTheMethodOneway Nothing
-    -- | isBestow = 
+    -- | isBestow = delegateUseM callTheMethodFuture (Just "fut")
     | isActive && isStream = delegateUseM callTheMethodStream (Just "stream")
     | otherwise = delegateUseM callTheMethodFuture (Just "fut")
     where
       targetTy = A.getType target
       isActive = Ty.isActiveClassType targetTy
-      -- isBestow = Ty.isBestowType targetTy
       isStream = Ty.isStreamType $ A.getType call
+      -- isBestow = Ty.isBestowType targetTy
 
       -- bestowClosure = Call (Call bestowGetTarget [A.target])
-      -- closureBody = 
+      -- closureBody =
+      -- objectType = Ty.getResultType targetTy
+      -- bestowBody = Seq $ [Assign (Decl (ctype, Var "owner")) (Call bestowGetTarget [encoreCtxVar, target]),
+      --                     Assign (Decl (objectType, Var "object")) (Call bestowGetObject [encoreCtxVar, target]),
+      --                     Statement $ Call handleClosure [AsExpr encoreCtxVar, AsExpr $ Var "cw"]]
+
+
+         -- let third = asEncoreArgT (translate $ A.getType bestowExpr) (AsExpr mval)
+         -- let mk = Call bestowWrapperMk [AsExpr encoreCtxVar, runtimeType $ A.getType bestowExpr, third]
+         -- let foo = Assign (Decl (C.bestow, Var tmp)) mk
 
       delegateUseM msgSend sym = do
         (ntarget, ttarget) <- translate target
