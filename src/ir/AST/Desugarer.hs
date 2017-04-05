@@ -44,14 +44,7 @@ desugarProgram p@(Program{traits, classes, functions}) =
         awaitParam = Param{pmeta, pmut=Val, pname=Name "f", ptype=futureType $ typeVar "_t"}
         perform = Method{mmeta, mheader=performHeader, mlocals=[], mbody=body}
           where
-            body = FunctionCall {emeta = emeta,
-                                 typeArguments = [],
-                                 qname = QName{qnspace = Nothing, qnsource = Nothing, qnlocal = Name "handle_closure"},
-                                 args = [(VarAccess emeta (qName "_ctx")), (VarAccess emeta (qName "_enc__arg_c"))]}
-            -- body = Embed {emeta = emeta,
-            --               ty = unitType,
-            --               embedded = [("handle_closure(_ctx, _enc__arg_c)", (VarAccess emeta (qName "_ctx")))]}
-            -- body = Embed emeta intType [("handle_closure(_ctx, _enc__arg_c)", Return emeta (IntLiteral (cloneMeta emeta) 1))]
+            body = Embed emeta unitType [("handle_closure(_ctx, _enc__arg_c);", Skip emeta)]
         performHeader = Header{hmodifiers=[]
                               ,kind=NonStreaming
                               ,htypeparams=[]
