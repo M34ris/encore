@@ -614,44 +614,12 @@ instance Translatable A.Expr (State Ctx.Context (CCode Lval, CCode Stat)) where
 
   translate call@A.MessageSend{A.emeta, A.target, A.name, A.args, A.typeArguments}
     | Util.isStatement call = delegateUseM callTheMethodOneway Nothing
-    -- | isBestow = delegateBestow callTheMethodFuture (Just "fut")
     | isActive && isStream = delegateUseM callTheMethodStream (Just "stream")
     | otherwise = delegateUseM callTheMethodFuture (Just "fut")
     where
       targetTy = A.getType target
       isActive = Ty.isActiveClassType targetTy
       isStream = Ty.isStreamType $ A.getType call
-      -- isBestow = Ty.isBestowType targetTy
-
-      -- delegateBestow msgSend sym = do
-      --   (ntarget, ttarget) <- translate bestowOwner
-      --   (initArgs, resultExpr) <-
-      --     msgSend ntarget targetTy perform args typeArguments retTy
-      --   (resultVar, handleResult) <- returnValue
-      --   return (resultVar,
-      --           Seq $ ttarget : targetNullCheck ntarget target perform emeta " ! " :
-      --                 initArgs ++ [handleResult resultExpr])
-
-      --   where
-      --     retTy | isNothing sym = Ty.unitType
-      --           | otherwise = A.getType call
-      --     returnValue | isNothing sym = return (unit, Statement)
-      --                 | otherwise = do
-      --                    result <- Ctx.genNamedSym (fromJust sym)
-      --                    return (Var result, Assign (Decl (translate retTy, Var result)))
-
-      --     perform = Nam "perform"
-      --     bestowExpr = translate bestowClosure
-      --     bestowClosure = A.Closure emeta [] (Just (A.getType bestowObject)) closureBody
-      --     closureBody = A.MethodCall emeta [] (AsExpr bestowObject) name []
-
-      --     bestowObject = A.FunctionCall emeta [] (A.qname Nothing Nothing (Nam "bestow_get_object")) [target]
-
-      --     objectType = Ty.getResultType targetTy
-      --     bestowOwner = Assign (Decl (Ty.ctype, Var "owner")) (Call bestowGetTarget [AsExpr encoreCtxVar, target])
-
-          -- bestowObject = Assign (Decl (objectType, Var "object")) (Call bestowGetObject [AsExpr encoreCtxVar, target])
-          -- bestowBody = Seq $ [bestowOwner, bestowObject, Statement $ Call handleClosure [AsExpr encoreCtxVar, AsExpr $ Var "cw"]]
 
       delegateUseM msgSend sym = do
         (ntarget, ttarget) <- translate target

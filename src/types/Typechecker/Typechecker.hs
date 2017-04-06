@@ -19,7 +19,6 @@ import Control.Monad.Reader
 import Control.Monad.Except
 import Control.Monad.State
 import Control.Arrow((&&&), second)
-import Debug.Trace
 
 -- Module dependencies
 import Identifiers

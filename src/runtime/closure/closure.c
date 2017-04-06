@@ -2,6 +2,7 @@
 #include "mem/pool.h"
 #include <assert.h>
 #include <dtrace_encore.h>
+#include <stdio.h>
 
 pony_type_t closure_type = {
   .id = ID_CLOSURE,
@@ -43,6 +44,8 @@ void encore_send_oneway_closure(pony_ctx_t** _ctx, pony_actor_t* _this, pony_typ
   /* No tracing future for oneway msg */;
   pony_send_done((*_ctx));
   encore_perform_oneway_closure_msg_t *msg = ((encore_perform_oneway_closure_msg_t*) pony_alloc_msg(POOL_INDEX(sizeof(encore_perform_oneway_closure_msg_t)), _ENC__MSG_RUN_CLOSURE));
+  printf("owner: %p\n", _this);
+  printf("msg: %p\n (%d)", msg, _ENC__MSG_RUN_CLOSURE);
   msg->c = _enc__arg_c;
   pony_sendv((*_ctx), ((pony_actor_t*) _this), ((pony_msg_t*) msg));
 }
