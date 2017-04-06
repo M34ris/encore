@@ -8,6 +8,12 @@ typedef struct closure closure_t;
 
 #include "encore.h"
 
+typedef struct encore_perform_oneway_closure_msg
+{
+  encore_oneway_msg_t msg;
+  closure_t* c;
+} encore_perform_oneway_closure_msg_t;
+
 typedef encore_arg_t value_t;
 
 /*
@@ -54,5 +60,7 @@ struct closure {
   pony_trace_fn trace;
   pony_type_t **runtimeTypes;
 };
+
+void encore_send_oneway_closure(pony_ctx_t** _ctx, pony_actor_t* _this, pony_type_t** runtimeType, closure_t* _enc__arg_c);
 
 #endif

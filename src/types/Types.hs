@@ -262,7 +262,7 @@ maybeGetId TypeVar{ident} = Just $ ident
 maybeGetId CType{ident} = Just $ ident
 maybeGetId _ = Nothing
 
-instance Show Type where
+instance Show Type where  
     show Unresolved{refInfo} = show refInfo
     show TraitType{refInfo} = show refInfo
     show AbstractTraitType{refInfo} = show refInfo

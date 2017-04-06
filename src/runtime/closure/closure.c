@@ -1,4 +1,5 @@
 #include "closure.h"
+#include "mem/pool.h"
 #include <assert.h>
 #include <dtrace_encore.h>
 
@@ -32,4 +33,16 @@ closure_t *closure_mk(pony_ctx_t **ctx, closure_fun fn, void *env,
 
 value_t closure_call(pony_ctx_t **ctx, closure_t *closure, value_t args[]){
   return closure->call(ctx, closure->runtimeTypes, args, closure->env);
+}
+
+void encore_send_oneway_closure(pony_ctx_t** _ctx, pony_actor_t* _this, pony_type_t** runtimeType, closure_t* _enc__arg_c)
+{
+  (void) runtimeType;
+  pony_gc_send((*_ctx));
+  encore_trace_object((*_ctx), _enc__arg_c, closure_trace);
+  /* No tracing future for oneway msg */;
+  pony_send_done((*_ctx));
+  encore_perform_oneway_closure_msg_t *msg = ((encore_perform_oneway_closure_msg_t*) pony_alloc_msg(POOL_INDEX(sizeof(encore_perform_oneway_closure_msg_t)), _ENC__MSG_RUN_CLOSURE));
+  msg->c = _enc__arg_c;
+  pony_sendv((*_ctx), ((pony_actor_t*) _this), ((pony_msg_t*) msg));
 }

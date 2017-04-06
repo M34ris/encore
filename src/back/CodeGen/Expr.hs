@@ -590,7 +590,7 @@ instance Translatable A.Expr (State Ctx.Context (CCode Lval, CCode Stat)) where
                            ])
     | syncAccess = delegateUse callTheMethodSync "sync_method_call"
     | sharedAccess = delegateUse callTheMethodFuture "shared_method_call"
-    | otherwise = error $ "Expr.hs: Don't know how to call target of type " ++
+    | otherwise = error $ "Expr.hs: Don't know how to call '" ++ show (PP.ppExpr target) ++ "' of type " ++
                           Ty.showWithKind targetTy ++
                           " at " ++ Meta.showPos (A.getMeta call)
         where
@@ -614,7 +614,7 @@ instance Translatable A.Expr (State Ctx.Context (CCode Lval, CCode Stat)) where
 
   translate call@A.MessageSend{A.emeta, A.target, A.name, A.args, A.typeArguments}
     | Util.isStatement call = delegateUseM callTheMethodOneway Nothing
-    -- | isBestow = delegateUseM callTheMethodFuture (Just "fut")
+    -- | isBestow = delegateBestow callTheMethodFuture (Just "fut")
     | isActive && isStream = delegateUseM callTheMethodStream (Just "stream")
     | otherwise = delegateUseM callTheMethodFuture (Just "fut")
     where
@@ -623,17 +623,35 @@ instance Translatable A.Expr (State Ctx.Context (CCode Lval, CCode Stat)) where
       isStream = Ty.isStreamType $ A.getType call
       -- isBestow = Ty.isBestowType targetTy
 
-      -- bestowClosure = Call (Call bestowGetTarget [A.target])
-      -- closureBody =
-      -- objectType = Ty.getResultType targetTy
-      -- bestowBody = Seq $ [Assign (Decl (ctype, Var "owner")) (Call bestowGetTarget [encoreCtxVar, target]),
-      --                     Assign (Decl (objectType, Var "object")) (Call bestowGetObject [encoreCtxVar, target]),
-      --                     Statement $ Call handleClosure [AsExpr encoreCtxVar, AsExpr $ Var "cw"]]
+      -- delegateBestow msgSend sym = do
+      --   (ntarget, ttarget) <- translate bestowOwner
+      --   (initArgs, resultExpr) <-
+      --     msgSend ntarget targetTy perform args typeArguments retTy
+      --   (resultVar, handleResult) <- returnValue
+      --   return (resultVar,
+      --           Seq $ ttarget : targetNullCheck ntarget target perform emeta " ! " :
+      --                 initArgs ++ [handleResult resultExpr])
 
+      --   where
+      --     retTy | isNothing sym = Ty.unitType
+      --           | otherwise = A.getType call
+      --     returnValue | isNothing sym = return (unit, Statement)
+      --                 | otherwise = do
+      --                    result <- Ctx.genNamedSym (fromJust sym)
+      --                    return (Var result, Assign (Decl (translate retTy, Var result)))
 
-         -- let third = asEncoreArgT (translate $ A.getType bestowExpr) (AsExpr mval)
-         -- let mk = Call bestowWrapperMk [AsExpr encoreCtxVar, runtimeType $ A.getType bestowExpr, third]
-         -- let foo = Assign (Decl (C.bestow, Var tmp)) mk
+      --     perform = Nam "perform"
+      --     bestowExpr = translate bestowClosure
+      --     bestowClosure = A.Closure emeta [] (Just (A.getType bestowObject)) closureBody
+      --     closureBody = A.MethodCall emeta [] (AsExpr bestowObject) name []
+
+      --     bestowObject = A.FunctionCall emeta [] (A.qname Nothing Nothing (Nam "bestow_get_object")) [target]
+
+      --     objectType = Ty.getResultType targetTy
+      --     bestowOwner = Assign (Decl (Ty.ctype, Var "owner")) (Call bestowGetTarget [AsExpr encoreCtxVar, target])
+
+          -- bestowObject = Assign (Decl (objectType, Var "object")) (Call bestowGetObject [AsExpr encoreCtxVar, target])
+          -- bestowBody = Seq $ [bestowOwner, bestowObject, Statement $ Call handleClosure [AsExpr encoreCtxVar, AsExpr $ Var "cw"]]
 
       delegateUseM msgSend sym = do
         (ntarget, ttarget) <- translate target

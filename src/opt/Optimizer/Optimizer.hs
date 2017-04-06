@@ -5,6 +5,7 @@ import AST.AST
 import AST.Util
 import Types
 import Control.Applicative (liftA2)
+import Debug.Trace
 
 optimizeProgram :: Program -> Program
 optimizeProgram p@(Program{classes, traits, functions}) =
@@ -32,17 +33,27 @@ optimizerPasses :: [Expr -> Expr]
 optimizerPasses = [constantFolding, constructors, bestowMessageSend,
                    sugarPrintedStrings, tupleMaybeIdComparison]
 
+bestowMethodCall :: Expr -> Expr
+bestowMethodCall = extend bestowCall
+   where
+     bestowCall e@(MethodCall {emeta, target, name, typeArguments, args})
+       | (isBestowType (getType target)) = Embed emeta unitType [("foo_bar_baz = 42;", Skip emeta)]
+       | otherwise = e
+     bestowCall e = e
+
 bestowMessageSend :: Expr -> Expr
 bestowMessageSend = extend bestowSend
     where
-      bestowSend e@(MessageSend {emeta, typeArguments, target, name, args})
+      bestowSend e@(MessageSend {emeta, target, name, args, typeArguments})
         | (isBestowType ty) =
-          Seq emeta [Embed emeta unitType [("pony_actor_t *owner = ", bestowOwner)],
-                     MessageSend {emeta = emeta,
-                                  name = runClosure,
-                                  target = (VarAccess emeta (qName "owner")),
-                                  args = [bestowClosure],
-                                  typeArguments = []}]
+          setType unitType $ Embed emeta unitType [("encore_send_oneway_closure(_ctx, ", bestowOwner),
+                                                         (", NULL, ", bestowClosure), (");", Skip emeta)]
+
+          -- $ MessageSend {emeta = emeta,
+          --                         name = runClosure,
+          --                         target = bestowOwner,
+          --                         args = [bestowClosure],
+          --                         typeArguments = []}
           
           -- Seq $ [Assign (Decl (closure, Var "cw")) (Cast (closure) (Var "_m")),
           --          Statement $ Call handleClosure [AsExpr encoreCtxVar, AsExpr $ Var "cw"]])
@@ -51,24 +62,26 @@ bestowMessageSend = extend bestowSend
         where
           ty = getType target
           runClosure = Name "perform"
-          bestowClosure = (Closure {emeta = emeta,
+          bestowClosure = setType (arrowType [] (getResultType $ getType e)) $ (Closure {emeta = emeta,
                                     eparams = [],
                                     mty = (Just (getType bestowObject)),
                                     body = bestowBody})
-          bestowBody = MethodCall {emeta = emeta,
+          bestowBody = setType (getResultType $ getType e) $ MethodCall {emeta = emeta,
                                    typeArguments = [],
                                    target = bestowObject,
                                    name = name,
                                    args = []}
-          bestowOwner = FunctionCall {emeta = emeta,
-                                      typeArguments = [],
-                                      qname = QName{qnspace = Nothing, qnsource = Nothing, qnlocal = Name "bestow_get_target"},
-                                      args = [target]}
-          bestowObject = FunctionCall {emeta = emeta,
-                                       typeArguments = [],
-                                       qname = QName{qnspace = Nothing, qnsource = Nothing, qnlocal = Name "bestow_get_object"},
-                                       args = [target]}
-          body = Embed emeta unitType [("bestow_get_target();", Skip emeta)]
+          -- bestowOwner = FunctionCall {emeta = emeta,
+          --                             typeArguments = [],
+          --                             qname = QName{qnspace = Nothing, qnsource = Nothing, qnlocal = Name "bestow_get_target"},
+          --                             args = [target]}
+          -- bestowObject = FunctionCall {emeta = emeta,
+          --                              typeArguments = [],
+          --                              qname = QName{qnspace = Nothing, qnsource = Nothing, qnlocal = Name "bestow_get_object"},
+          --                              args = [target]}
+          bestowObject = setType (getResultType ty) $ Embed emeta (getResultType ty) [("bestow_get_object(", target), (").p;", Skip emeta)]
+          bestowOwner = setType (ctype "pony_actor_t*") $ Embed emeta (ctype "pony_actor_t*") [("bestow_get_target(", target), (");", Skip emeta)]
+          -- body = Embed emeta unitType [("bestow_get_target();", Skip emeta)]
       bestowSend e = e
 
 -- Note that this is not intended as a serious optimization, but

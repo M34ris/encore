@@ -366,8 +366,9 @@ findMethodWithCalledType ty name
         return result
     | isBestowType ty = do
         (header, ty') <- findMethodWithCalledType (getResultType ty) name
-        -- return (header, bestowType ty')
-        return (header, (getResultType ty))
+        return (header, bestowType ty')
+        -- return (header, ty)
+        -- return (header, (getResultType ty))
     | otherwise = do
         isKnown <- isKnownRefType ty
         unless isKnown $

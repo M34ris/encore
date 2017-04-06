@@ -101,9 +101,8 @@ dispatchFunDecl cdecl@(A.Class{A.cname, A.cfields, A.cmethods}) =
                                            AsExpr $ (Var "msg") `Arrow` (Nam "argv")]]])
        closureHandle =
            (Nam "_ENC__MSG_RUN_CLOSURE",
-            Seq $ [Assign (Decl (closure, Var "cw")) (Cast (closure) (Var "_m")),
-                   Statement $ Call handleClosure [AsExpr encoreCtxVar, AsExpr $ Var "cw"]])
-                   -- gcRecv mParams (Statement $ Call ponyTraceObject (includeCtx [futVar, futureTypeRecName `Dot` Nam "trace")])])
+            Seq $ [Assign (Decl ((closure), Var "c")) $ (Cast (Ptr $ Typ "encore_perform_oneway_closure_msg_t") (Var "_m")) `Arrow` Nam "c",
+                   Statement $ Call handleClosure [AsExpr encoreCtxVar, AsExpr $ Var "c"]])
            
        methodClauses = concatMap methodClause
 
