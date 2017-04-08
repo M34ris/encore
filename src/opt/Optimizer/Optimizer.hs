@@ -37,22 +37,26 @@ bestowMessageSend :: Expr -> Expr
 bestowMessageSend = extend bestowSend
     where
       bestowSend e@(MessageSend {emeta, target, name, args, typeArguments})
-        | (isBestowType ty) =
+        -- It's possible to merge these first two cases, splitting them for convinience right now
+        | (isBestowType ty) && (isUnitType resultTy) =
           setType unitType $ Embed emeta unitType [("encore_send_oneway_closure(_ctx, ", bestowOwner),
-                                                         (", NULL, ", bestowClosure), (");", Skip emeta)]          
+                                                   (", NULL, ", bestowClosure), (");", Skip emeta)]
+        | (isBestowType ty) =
+          setType unitType $ Embed emeta resultTy [("encore_send_future_closure(_ctx, ", bestowOwner),
+                                                   (", NULL, ", bestowClosure), (");", Skip emeta)]
         | otherwise = e
         where
           ty = getType target
-          runClosure = Name "perform"
-          bestowClosure = setType (arrowType [] (getResultType $ getType e)) $ (Closure {emeta = emeta,
-                                                                                         eparams = [],
-                                                                                         mty = (Just (getType bestowObject)),
-                                                                                         body = bestowBody})
-          bestowBody = setType (getResultType $ getType e) $ MethodCall {emeta = emeta,
-                                                                         typeArguments = [],
-                                                                         target = bestowObject,
-                                                                         name = name,
-                                                                         args = []}
+          resultTy = getResultType $ getType e
+          bestowClosure = setType (arrowType [] resultTy) $ Closure {emeta = emeta,
+                                                                     eparams = [],
+                                                                     mty = Just (getType bestowObject),
+                                                                     body = bestowBody}
+          bestowBody = setType resultTy $ MethodCall {emeta = emeta,
+                                                      typeArguments = [],
+                                                      target = bestowObject,
+                                                      name = name,
+                                                      args = []}
           bestowObject = setType (getResultType ty) $ Embed emeta (getResultType ty) [("bestow_get_object(", target), (").p;", Skip emeta)]
           bestowOwner = setType (ctype "pony_actor_t*") $ Embed emeta (ctype "pony_actor_t*") [("bestow_get_target(", target), (");", Skip emeta)]
       bestowSend e = e

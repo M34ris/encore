@@ -1,10 +1,11 @@
 #ifndef __future_using_actors_h
 #define __future_using_actors_h
 
+typedef struct future future_t;
+
 #include <pony.h>
 #include "closure.h"
 
-typedef struct future future_t;
 extern pony_type_t future_type;
 
 typedef struct bestow_wrapper bestow_wrapper_t;

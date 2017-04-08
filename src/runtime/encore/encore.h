@@ -71,6 +71,7 @@ typedef enum {
   _ENC__MSG_RESUME_SUSPEND,
   _ENC__MSG_RESUME_AWAIT,
   _ENC__MSG_RUN_CLOSURE,
+  _ENC__MSG_FUT_RUN_CLOSURE,
   _ENC__MSG_MAIN,
 } encore_msg_id;
 
