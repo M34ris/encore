@@ -1,11 +1,10 @@
 #ifndef __future_using_actors_h
 #define __future_using_actors_h
 
-typedef struct future future_t;
-
 #include <pony.h>
 #include "closure.h"
 
+typedef struct future future_t;
 extern pony_type_t future_type;
 
 typedef struct bestow_wrapper bestow_wrapper_t;
@@ -87,6 +86,6 @@ pony_actor_t *bestow_get_target(bestow_wrapper_t *bw);
 
 encore_arg_t bestow_get_object(bestow_wrapper_t *bw);
 
-void handle_closure(pony_ctx_t **ctx, closure_t *c);
+encore_arg_t handle_closure(pony_ctx_t **ctx, closure_t *c);
 
 #endif

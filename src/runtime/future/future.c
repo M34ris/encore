@@ -270,10 +270,10 @@ static inline encore_arg_t run_closure(pony_ctx_t **ctx, closure_t *c, encore_ar
   return closure_call(ctx, c, (value_t[1]) { value });
 }
 
-void handle_closure(pony_ctx_t **ctx, closure_t *c)
+encore_arg_t handle_closure(pony_ctx_t **ctx, closure_t *c)
 {
   encore_arg_t hack = (encore_arg_t) NULL;
-  run_closure(ctx, c, hack);
+  return run_closure(ctx, c, hack);
 }
 
 bool future_fulfilled(future_t *fut)

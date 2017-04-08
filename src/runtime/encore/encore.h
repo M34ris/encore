@@ -88,6 +88,22 @@ struct encore_fut_msg
   future_t    *_fut;
 };
 
+typedef struct encore_perform_future_msg
+{
+  encore_fut_msg_t msg;
+  closure_t* c;  
+} encore_perform_future_msg_t;
+
+typedef struct encore_perform_oneway_msg
+{
+  encore_oneway_msg_t msg;
+  closure_t* c;
+} encore_perform_oneway_msg_t;
+
+void encore_send_oneway_closure(pony_ctx_t** _ctx, pony_actor_t* _this, pony_type_t** runtimeType, closure_t* _enc__arg_c);
+
+future_t* encore_send_future_closure(pony_ctx_t** _ctx, pony_actor_t* _this, pony_type_t** runtimeType, closure_t* _enc__arg_c);
+
 typedef struct stack_page {
   void *stack;
   struct stack_page *next;
