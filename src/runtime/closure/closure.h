@@ -8,11 +8,11 @@ typedef struct closure closure_t;
 
 #include "encore.h"
 
-typedef struct encore_perform_oneway_closure_msg
+typedef struct encore_perform_oneway_msg
 {
   encore_oneway_msg_t msg;
   closure_t* c;
-} encore_perform_oneway_closure_msg_t;
+} encore_perform_oneway_msg_t;
 
 typedef encore_arg_t value_t;
 

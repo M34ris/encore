@@ -77,9 +77,9 @@ dispatchFunDecl cdecl@(A.Class{A.cname, A.cfields, A.cmethods}) =
             (
              (
               if (A.isMainClass cdecl)
-              then concat [[closureHandle], ponyMainClause :
+              then concat [[runClosure], ponyMainClause :
                    methodClauses (filter ((/= ID.Name "main") . A.methodName) cmethods)]
-              else concat [[closureHandle], methodClauses $ cmethods]
+              else concat [[runClosure], methodClauses $ cmethods]
              )
             )
             (Statement $ Call (Nam "printf") [String "error, got invalid id: %zd", AsExpr $ (Var "_m") `Arrow` (Nam "id")]))]))
@@ -99,9 +99,9 @@ dispatchFunDecl cdecl@(A.Class{A.cname, A.cfields, A.cmethods}) =
                                           [AsExpr encoreCtxVar,
                                            AsExpr $ (Var "msg") `Arrow` (Nam "argc"),
                                            AsExpr $ (Var "msg") `Arrow` (Nam "argv")]]])
-       closureHandle =
+       runClosure =
            (Nam "_ENC__MSG_RUN_CLOSURE",
-            Seq $ [Assign (Decl ((closure), Var "c")) $ (Cast (Ptr $ Typ "encore_perform_oneway_closure_msg_t") (Var "_m")) `Arrow` Nam "c",
+            Seq $ [Assign (Decl ((closure), Var "c")) $ (Cast (Ptr $ Typ "encore_perform_oneway_msg_t") (Var "_m")) `Arrow` Nam "c",
                    Statement $ Call handleClosure [AsExpr encoreCtxVar, AsExpr $ Var "c"]])
            
        methodClauses = concatMap methodClause

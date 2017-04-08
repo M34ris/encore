@@ -7,7 +7,6 @@
 typedef struct future future_t;
 extern pony_type_t future_type;
 
-typedef struct encore_cls_wrpr encore_cls_wrpr_t;
 typedef struct bestow_wrapper bestow_wrapper_t;
 extern pony_type_t bestow_type;
 
@@ -87,7 +86,6 @@ pony_actor_t *bestow_get_target(bestow_wrapper_t *bw);
 
 encore_arg_t bestow_get_object(bestow_wrapper_t *bw);
 
-// void handle_closure(pony_ctx_t **ctx, encore_cls_wrpr_t *cls);
 void handle_closure(pony_ctx_t **ctx, closure_t *c);
 
 #endif

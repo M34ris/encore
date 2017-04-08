@@ -407,10 +407,10 @@ bool encore_actor_handle_message_hook(encore_actor_t *actor, pony_msg_t* msg)
       actor_await_resume(actor, ((pony_msgp_t*)msg)->p);
       return true;
 
-    case _ENC__MSG_RUN_CLOSURE:
-      assert(-1);
-      // run_closure(msg->argv[0].p, msg->argv[1].p, msg->argv[2].p);
-      return true;
+    /* case _ENC__MSG_RUN_CLOSURE: */
+    /*   assert(-1); */
+    /*   // run_closure(msg->argv[0].p, msg->argv[1].p, msg->argv[2].p); */
+    /*   return true; */
   }
   return false;
 }
