@@ -36,12 +36,11 @@ bestowMessageSend :: Expr -> Expr
 bestowMessageSend = extend bestowSend
     where
       bestowSend e@(MessageSend {emeta, target, name, args, typeArguments})
-        -- It's possible to merge these first two cases, splitting them for convinience right now
         | (isBestowType ty) && (isUnitType resultTy) =
           setType unitType $ Embed emeta unitType [("encore_send_oneway_closure(_ctx, ", bestowOwner),
                                                    (", NULL, ", bestowClosure), (");", Skip emeta)]
         | (isBestowType ty) =
-          setType unitType $ Embed emeta resultTy [("encore_send_future_closure(_ctx, ", bestowOwner),
+          setType (futureType resultTy) $ Embed emeta resultTy [("encore_send_future_closure(_ctx, ", bestowOwner),
                                                    (", NULL, ", bestowClosure), (");", Skip emeta)]
         | otherwise = e
         where

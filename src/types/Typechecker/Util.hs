@@ -674,6 +674,7 @@ abstractTraitFrom cname (t, exts) = do
 
 partly :: (Type -> TypecheckM Bool) -> Type -> TypecheckM Bool
 partly isKind ty
+    | isBestowType ty = isKind ty
     | isCompositeType ty
     , traits <- typesFromCapability ty
       = anyM (partly isKind) traits

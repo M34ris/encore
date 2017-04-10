@@ -1299,6 +1299,10 @@ instance Checkable Expr where
            Just (_, thisType) <- findVar $ qLocal thisName
            let ty = AST.getType eExpr
            isActive <- isActiveType thisType
+           isLocal  <- isLocalType ty
+           isSubord <- isSubordinateType ty
+           unless (isLocal || isSubord) $
+                     pushError eExpr $ ExpectingOtherTypeError "the bestowed object to be either local or subord" ty
            unless (isActive) $
                      pushError eExpr $ ExpectingOtherTypeError "an object from an active class" ty
            return $ setType (bestowType ty) bestow {bestowExpr = eExpr}
@@ -1924,8 +1928,7 @@ checkLocalReturn :: Name -> Type -> Type -> TypecheckM ()
 checkLocalReturn name returnType targetType =
   when (isActiveRefType targetType) $ do
     localReturn <- isLocalType returnType
-    isBestow <- return $ not (isBestowType returnType)
-    when (localReturn && isBestow) $
+    when localReturn $
        tcError $ ThreadLocalReturnError name
     let polymorphicReturn = any isTypeVar $ typeComponents returnType
     when polymorphicReturn $
