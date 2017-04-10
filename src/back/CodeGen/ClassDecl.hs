@@ -75,12 +75,10 @@ dispatchFunDecl cdecl@(A.Class{A.cname, A.cfields, A.cmethods}) =
            Seq $ map assignTypeVar classTypeVars,
            (Switch (Var "_m" `Arrow` Nam "id")
             (
-             (
               if (A.isMainClass cdecl)
-              then concat [[runClosure], [runClosureVal], ponyMainClause :
-                   methodClauses (filter ((/= ID.Name "main") . A.methodName) cmethods)]
-              else concat [[runClosure], [runClosureVal], methodClauses $ cmethods]
-             )
+              then runClosure:runClosureVal:ponyMainClause :
+                   (methodClauses (filter ((/= ID.Name "main") . A.methodName) cmethods))
+              else runClosure:runClosureVal:(methodClauses $ cmethods)
             )
             (Statement $ Call (Nam "printf") [String "error, got invalid id: %zd", AsExpr $ (Var "_m") `Arrow` (Nam "id")]))]))
      where

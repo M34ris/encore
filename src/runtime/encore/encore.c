@@ -449,7 +449,6 @@ void encore_send_oneway_closure(pony_ctx_t** _ctx, pony_actor_t* _this, pony_typ
   (void) runtimeType;
   pony_gc_send((*_ctx));
   encore_trace_object((*_ctx), _enc__arg_c, closure_trace);
-  /* No tracing future for oneway msg */;
   pony_send_done((*_ctx));
   encore_perform_oneway_msg_t *msg = ((encore_perform_oneway_msg_t*) pony_alloc_msg(POOL_INDEX(sizeof(encore_perform_oneway_msg_t)), _ENC__MSG_RUN_CLOSURE));
   msg->c = _enc__arg_c;
@@ -461,7 +460,6 @@ future_t* encore_send_future_closure(pony_ctx_t** _ctx, pony_actor_t* _this, pon
   (void) runtimeType;
   future_t* _fut = future_mk(_ctx, ENCORE_PRIMITIVE);
   pony_gc_send((*_ctx));
-  /* Not tracing field '_enc__arg_c' */;
   encore_trace_object((*_ctx), _fut, future_trace);
   pony_send_done((*_ctx));  
   encore_perform_future_msg_t* msg = ((encore_perform_future_msg_t*) pony_alloc_msg(POOL_INDEX(sizeof(encore_perform_future_msg_t)), _ENC__MSG_FUT_RUN_CLOSURE));

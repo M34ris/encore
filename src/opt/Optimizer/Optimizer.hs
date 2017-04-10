@@ -36,7 +36,7 @@ bestowMessageSend :: Expr -> Expr
 bestowMessageSend = extend bestowSend
     where
       bestowSend e@(MessageSend {emeta, target, name, args, typeArguments})
-        | (isBestowType ty) && (isUnitType resultTy) =
+        | (isBestowType ty) && (isStatement e) =
           setType unitType $ Embed emeta unitType [("encore_send_oneway_closure(_ctx, ", bestowOwner),
                                                    (", NULL, ", bestowClosure), (");", Skip emeta)]
         | (isBestowType ty) =

@@ -1069,15 +1069,13 @@ instance Translatable A.Expr (State Ctx.Context (CCode Lval, CCode Stat)) where
     error $ "Expr.hs: Target of forward is not method call or future chain: '" ++
             show forwardExpr ++ "'"
 
-  -- TODO:
-  -- 1. Checks on the bestowed object
   translate bestow@(A.Bestow{A.bestowExpr}) =
       do (mval, tval) <- translate bestowExpr
          tmp <- Ctx.genSym
-         let third = asEncoreArgT (translate $ A.getType bestowExpr) (AsExpr mval)
-         let mk = Call bestowWrapperMk [AsExpr encoreCtxVar, runtimeType $ A.getType bestowExpr, third]
-         let foo = Assign (Decl (C.bestow, Var tmp)) mk
-         return (Var tmp, Seq [tval, foo])
+         let innerType = asEncoreArgT (translate $ A.getType bestowExpr) (AsExpr mval)
+         let mk = Call bestowWrapperMk [AsExpr encoreCtxVar, runtimeType $ A.getType bestowExpr, innerType]
+         let mkBestow = Assign (Decl (C.bestow, Var tmp)) mk
+         return (Var tmp, Seq [tval, mkBestow])
 
   translate yield@(A.Yield{A.val}) =
       do (nval, tval) <- translate val

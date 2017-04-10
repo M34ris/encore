@@ -42,7 +42,6 @@ struct bestow_wrapper
 {
   pony_actor_t *owner;  // The owner of the bestowed object
   encore_arg_t  object; // The bestowed object
-  // future_t     *fut;
   pony_type_t  *type;
 };
 
@@ -56,36 +55,12 @@ static inline void bestow_gc_trace_value(pony_ctx_t *ctx, bestow_wrapper_t *bw)
   }
 }
 
-static inline void bestow_gc_send_value(pony_ctx_t *ctx, bestow_wrapper_t *bw)
-{
-  pony_gc_send(ctx);
-  bestow_gc_trace_value(ctx, bw);
-  pony_send_done(ctx);
-}
-
-static inline void bestow_gc_recv_value(pony_ctx_t *ctx, bestow_wrapper_t *bw)
-{
-  pony_gc_recv(ctx);
-  bestow_gc_trace_value(ctx, bw);
-  ponyint_gc_handlestack(ctx);   
-}
-
-static void bestow_finalizer(bestow_wrapper_t *bw)
-{
-  /* pony_ctx_t *ctx = pony_ctx(); */
-  /* bestow_gc_recv_value(ctx, bw); */
-  (void) bw;
-  // ENC_DTRACE2(FUTURE_DESTROY, (uintptr_t) cctx, (uintptr_t) fut);
-}
-
 bestow_wrapper_t *bestow_wrapper_mk(pony_ctx_t **ctx, pony_type_t *type, encore_arg_t object)
 {
   pony_ctx_t *cctx = *ctx;
-  bestow_wrapper_t *bw = pony_alloc_final(cctx, sizeof(bestow_wrapper_t),
-                                          (void *)&bestow_finalizer);
+  bestow_wrapper_t *bw = pony_alloc(cctx, sizeof(bestow_wrapper_t));
   *bw = (bestow_wrapper_t) { .owner = cctx->current, .object = object,
-                             .type = type};
-  
+                             .type = type};  
   return bw;
 }
 

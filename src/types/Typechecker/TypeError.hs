@@ -328,7 +328,7 @@ instance Show Error where
     show (WrongNumberOfMethodArgumentsError name targetType expected actual) =
         let
             ty = if (isBestowType targetType)
-                 then (getResultType targetType)
+                 then getResultType targetType
                  else targetType
             nameWithKind =
               (if name == constructorName

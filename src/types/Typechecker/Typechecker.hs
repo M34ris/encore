@@ -643,9 +643,7 @@ instance Checkable Expr where
               methodName = name mcall
 
           isKnown <- isKnownRefType targetType
-          methodResult <- if isBestowType targetType
-                          then asks $ methodLookup (getResultType targetType) methodName
-                          else if isKnown
+          methodResult <- if isKnown
                           then asks $ methodLookup targetType methodName
                           else return Nothing
 
