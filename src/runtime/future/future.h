@@ -5,8 +5,11 @@
 #include "closure.h"
 
 typedef struct future future_t;
-
 extern pony_type_t future_type;
+
+typedef struct bestow_wrapper bestow_wrapper_t;
+extern pony_type_t bestow_type;
+
 void future_trace(pony_ctx_t *ctx, void* p);
 
 /*
@@ -76,4 +79,13 @@ void future_register_callback(pony_ctx_t **ctx,
  * puts on hold the processing of this message.
  */
 void future_await(pony_ctx_t **ctx, future_t *fut);
+
+bestow_wrapper_t *bestow_wrapper_mk(pony_ctx_t **ctx, pony_type_t *type, encore_arg_t object);
+
+pony_actor_t *bestow_get_target(bestow_wrapper_t *bw);
+
+encore_arg_t bestow_get_object(bestow_wrapper_t *bw);
+
+encore_arg_t handle_closure(pony_ctx_t **ctx, closure_t *c);
+
 #endif

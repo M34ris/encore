@@ -572,6 +572,8 @@ data Expr = Skip {emeta :: Meta Expr}
                      eparams :: [ParamDecl],
                      mty :: Maybe Type,
                      body :: Expr}
+          | Bestow {emeta :: Meta Expr,
+                    bestowExpr :: Expr}
           | PartySeq {emeta :: Meta Expr,
                       par :: Expr,
                       seqfunc :: Expr}

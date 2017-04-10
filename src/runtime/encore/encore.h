@@ -57,6 +57,7 @@ typedef union { encore_arg_t_content; } encore_arg_t;
 typedef enum {
   ID_CLOSURE = 0,
   ID_FUTURE,
+  ID_BESTOW,
   ID_SCONS,
   ID_ARRAY,
   ID_OPTION,
@@ -70,6 +71,7 @@ typedef enum {
   _ENC__MSG_RESUME_SUSPEND,
   _ENC__MSG_RESUME_AWAIT,
   _ENC__MSG_RUN_CLOSURE,
+  _ENC__MSG_FUT_RUN_CLOSURE,
   _ENC__MSG_MAIN,
 } encore_msg_id;
 
@@ -85,6 +87,22 @@ struct encore_fut_msg
   encore_oneway_msg_t pad;
   future_t    *_fut;
 };
+
+typedef struct encore_perform_future_msg
+{
+  encore_fut_msg_t msg;
+  closure_t* c;  
+} encore_perform_future_msg_t;
+
+typedef struct encore_perform_oneway_msg
+{
+  encore_oneway_msg_t msg;
+  closure_t* c;
+} encore_perform_oneway_msg_t;
+
+void encore_send_oneway_closure(pony_ctx_t** _ctx, pony_actor_t* _this, pony_type_t** runtimeType, closure_t* _enc__arg_c);
+
+future_t* encore_send_future_closure(pony_ctx_t** _ctx, pony_actor_t* _this, pony_type_t** runtimeType, closure_t* _enc__arg_c);
 
 typedef struct stack_page {
   void *stack;

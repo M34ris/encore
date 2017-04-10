@@ -5,6 +5,7 @@ import AST.AST
 import AST.Util
 import Types
 import Control.Applicative (liftA2)
+import Debug.Trace
 
 optimizeProgram :: Program -> Program
 optimizeProgram p@(Program{classes, traits, functions}) =
@@ -29,7 +30,35 @@ optimizeProgram p@(Program{classes, traits, functions}) =
 
 -- | The functions in this list will be performed in order during optimization
 optimizerPasses :: [Expr -> Expr]
-optimizerPasses = [constantFolding, sugarPrintedStrings, tupleMaybeIdComparison]
+optimizerPasses = [constantFolding, sugarPrintedStrings, tupleMaybeIdComparison, bestowMessageSend]
+
+bestowMessageSend :: Expr -> Expr
+bestowMessageSend = extend bestowSend
+    where
+      bestowSend e@(MessageSend {emeta, target, name, args, typeArguments})
+        -- It's possible to merge these first two cases, splitting them for convinience right now
+        | (isBestowType ty) && (isUnitType resultTy) =
+          setType unitType $ Embed emeta unitType [("encore_send_oneway_closure(_ctx, ", bestowOwner),
+                                                   (", NULL, ", bestowClosure), (");", Skip emeta)]
+        | (isBestowType ty) =
+          setType unitType $ Embed emeta resultTy [("encore_send_future_closure(_ctx, ", bestowOwner),
+                                                   (", NULL, ", bestowClosure), (");", Skip emeta)]
+        | otherwise = e
+        where
+          ty = getType target
+          resultTy = getResultType $ getType e
+          bestowClosure = setType (arrowType [] resultTy) $ Closure {emeta = emeta,
+                                                                     eparams = [],
+                                                                     mty = Just (getType bestowObject),
+                                                                     body = bestowBody}
+          bestowBody = setType resultTy $ MethodCall {emeta = emeta,
+                                                      typeArguments = [],
+                                                      target = bestowObject,
+                                                      name = name,
+                                                      args = args}
+          bestowObject = setType (getResultType ty) $ Embed emeta (getResultType ty) [("bestow_get_object(", target), (").p;", Skip emeta)]
+          bestowOwner = setType (ctype "pony_actor_t*") $ Embed emeta (ctype "pony_actor_t*") [("bestow_get_target(", target), (");", Skip emeta)]
+      bestowSend e = e
 
 -- Note that this is not intended as a serious optimization, but
 -- as an example to how an optimization could be made. As soon as

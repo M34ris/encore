@@ -177,6 +177,7 @@ reservedNames =
     ["EMBED"
     ,"END"
     ,"Fut"
+    ,"Bestow"
     ,"Maybe"
     ,"Par"
     ,"Stream"
@@ -198,6 +199,7 @@ reservedNames =
     ,"false"
     ,"for"
     ,"fun"
+    ,"bestow"
     ,"forward"
     ,"if"
     ,"import"
@@ -376,11 +378,12 @@ typ = makeExprParser singleType opTable
       range = do
         reserved "Range"
         return rangeType
-      builtin = maybe <|> fut <|> par <|> stream
+      builtin = maybe <|> fut <|> bestow <|> par <|> stream
         where
           builtin' t r = liftM t (reserved r >> brackets typ)
           maybe  = builtin' maybeType "Maybe"
           fut    = builtin' futureType "Fut"
+          bestow = builtin' bestowType "Bestow"
           par    = builtin' parType "Par"
           stream = builtin' streamType "Stream"
       refType = do
@@ -980,6 +983,7 @@ expr = notFollowedBy nl >>
      <|> unlessIf
      <|> explicitReturn
      <|> forward
+     <|> bestow
      <|> yield
      <|> try isEos
      <|> eos
@@ -1381,6 +1385,12 @@ expr = notFollowedBy nl >>
         reserved "forward"
         expr <- parens expression
         return $ Forward (meta pos) expr
+
+      bestow = do
+        pos <- getPosition
+        reserved "bestow"
+        expr <- parens expression
+        return $ Bestow (meta pos) expr
 
       closure = do
         indent <- L.indentLevel

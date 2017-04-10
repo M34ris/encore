@@ -38,6 +38,75 @@ typedef struct message_entry message_entry_t;
 // Producer -- the actor responsible for fulfilling a future
 // Consumer -- an non-producer actor using a future
 
+struct bestow_wrapper
+{
+  pony_actor_t *owner;  // The owner of the bestowed object
+  encore_arg_t  object; // The bestowed object
+  // future_t     *fut;
+  pony_type_t  *type;
+};
+
+static inline void bestow_gc_trace_value(pony_ctx_t *ctx, bestow_wrapper_t *bw)
+{
+  assert(bw);
+  if (bw->type == ENCORE_ACTIVE) {
+      encore_trace_actor(ctx, bw->object.p);
+  } else if (bw->type != ENCORE_PRIMITIVE) {
+    encore_trace_object(ctx, bw->object.p, bw->type->trace);
+  }
+}
+
+static inline void bestow_gc_send_value(pony_ctx_t *ctx, bestow_wrapper_t *bw)
+{
+  pony_gc_send(ctx);
+  bestow_gc_trace_value(ctx, bw);
+  pony_send_done(ctx);
+}
+
+static inline void bestow_gc_recv_value(pony_ctx_t *ctx, bestow_wrapper_t *bw)
+{
+  pony_gc_recv(ctx);
+  bestow_gc_trace_value(ctx, bw);
+  ponyint_gc_handlestack(ctx);   
+}
+
+static void bestow_finalizer(bestow_wrapper_t *bw)
+{
+  /* pony_ctx_t *ctx = pony_ctx(); */
+  /* bestow_gc_recv_value(ctx, bw); */
+  (void) bw;
+  // ENC_DTRACE2(FUTURE_DESTROY, (uintptr_t) cctx, (uintptr_t) fut);
+}
+
+bestow_wrapper_t *bestow_wrapper_mk(pony_ctx_t **ctx, pony_type_t *type, encore_arg_t object)
+{
+  pony_ctx_t *cctx = *ctx;
+  bestow_wrapper_t *bw = pony_alloc_final(cctx, sizeof(bestow_wrapper_t),
+                                          (void *)&bestow_finalizer);
+  *bw = (bestow_wrapper_t) { .owner = cctx->current, .object = object,
+                             .type = type};
+  
+  return bw;
+}
+
+pony_actor_t *bestow_get_target(bestow_wrapper_t *bw)
+{
+  return bw->owner;
+}
+
+encore_arg_t bestow_get_object(bestow_wrapper_t *bw)
+{
+  return bw->object;
+}
+
+void bestow_trace(pony_ctx_t *ctx, void* p)
+{
+  assert(p);
+  (void) ctx;
+  (void) p;
+  // TODO
+}
+
 typedef enum responsibility_t
 {
   // A closure that should be run by the producer
@@ -106,6 +175,12 @@ pony_type_t future_type = {
   .id = ID_FUTURE,
   .size = sizeof(struct future),
   .trace = &future_trace
+};
+
+pony_type_t bestow_type = {
+  .id = ID_BESTOW,
+  .size = sizeof(struct bestow_wrapper),
+  .trace = &bestow_trace
 };
 
 pony_type_t *future_get_type(future_t *fut){
@@ -193,6 +268,12 @@ future_t *future_mk(pony_ctx_t **ctx, pony_type_t *type)
 static inline encore_arg_t run_closure(pony_ctx_t **ctx, closure_t *c, encore_arg_t value)
 {
   return closure_call(ctx, c, (value_t[1]) { value });
+}
+
+encore_arg_t handle_closure(pony_ctx_t **ctx, closure_t *c)
+{
+  encore_arg_t hack = (encore_arg_t) NULL;
+  return run_closure(ctx, c, hack);
 }
 
 bool future_fulfilled(future_t *fut)

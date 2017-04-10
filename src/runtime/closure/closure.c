@@ -1,6 +1,8 @@
 #include "closure.h"
+#include "mem/pool.h"
 #include <assert.h>
 #include <dtrace_encore.h>
+#include <stdio.h>
 
 pony_type_t closure_type = {
   .id = ID_CLOSURE,
@@ -32,4 +34,4 @@ closure_t *closure_mk(pony_ctx_t **ctx, closure_fun fn, void *env,
 
 value_t closure_call(pony_ctx_t **ctx, closure_t *closure, value_t args[]){
   return closure->call(ctx, closure->runtimeTypes, args, closure->env);
-}
+} 

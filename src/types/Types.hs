@@ -6,6 +6,8 @@ module Types(
             ,isArrowType
             ,futureType
             ,isFutureType
+            ,bestowType
+            ,isBestowType
             ,parType
             ,isParType
             ,streamType
@@ -289,6 +291,7 @@ data InnerType =
                    ,modes :: [Mode]
                    }
         | FutureType{resultType :: Type}
+        | BestowType{resultType :: Type}
         | ParType{resultType :: Type}
         | StreamType{resultType :: Type}
         | ArrayType{resultType :: Type}
@@ -338,7 +341,7 @@ getMode ty
   | otherwise = Nothing
 
 hasResultType x
-  | isArrowType x || isFutureType x || isParType x ||
+  | isArrowType x || isFutureType x || isBestowType x || isParType x ||
     isStreamType x || isArrayType x || isMaybeType x = True
   | otherwise = False
 
@@ -414,6 +417,7 @@ instance Show InnerType where
         unwords (map show modes) ++
         " (" ++ show arrow{modes = []} ++ ")"
     show FutureType{resultType} = "Fut" ++ brackets resultType
+    show BestowType{resultType} = "Bestow" ++ brackets resultType
     show ParType{resultType}    = "Par" ++ brackets resultType
     show StreamType{resultType} = "Stream" ++ brackets resultType
     show ArrayType{resultType}  = brackets resultType
@@ -460,6 +464,7 @@ showWithKind ty = kind (inner ty) ++ " " ++ show ty
     kind TypeVar{}                     = "polymorphic type"
     kind ArrowType{}                   = "function type"
     kind FutureType{}                  = "future type"
+    kind BestowType{}                  = "bestow type"
     kind ParType{}                     = "parallel type"
     kind StreamType{}                  = "stream type"
     kind RangeType{}                   = "range type"
@@ -476,6 +481,7 @@ hasSameKind :: Type -> Type -> Bool
 hasSameKind ty1 ty2
   | areBoth isMaybeType ||
     areBoth isFutureType ||
+    areBoth isBestowType ||
     areBoth isParType ||
     areBoth isArrayType ||
     areBoth isStreamType = getResultType ty1 `hasSameKind` getResultType ty2
@@ -853,6 +859,10 @@ isArrowType _ = False
 futureType = typ . FutureType
 isFutureType Type{inner = FutureType {}} = True
 isFutureType _ = False
+
+bestowType = typ . BestowType
+isBestowType Type{inner = BestowType {}} = True
+isBestowType _ = False
 
 maybeType = typ . MaybeType
 isMaybeType Type{inner = MaybeType {}} = True

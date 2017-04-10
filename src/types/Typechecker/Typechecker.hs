@@ -643,7 +643,9 @@ instance Checkable Expr where
               methodName = name mcall
 
           isKnown <- isKnownRefType targetType
-          methodResult <- if isKnown
+          methodResult <- if isBestowType targetType
+                          then asks $ methodLookup (getResultType targetType) methodName
+                          else if isKnown
                           then asks $ methodLookup targetType methodName
                           else return Nothing
 
@@ -728,7 +730,8 @@ instance Checkable Expr where
               errorInitMethod targetType (name m)
               isActive <- isActiveType targetType
               isShared <- isSharedType targetType
-              unless (isActive || isShared) $
+              isBestow <- return $ isBestowType targetType
+              unless (isActive || isShared || isBestow) $
                 tcError $ NonSendableTargetError targetType
             | isMethodCall m = do
               when (isRefType targetType) $ do
@@ -1287,6 +1290,18 @@ instance Checkable Expr where
     --    suspend : unit
     doTypecheck suspend@(Suspend {}) =
         return $ setType unitType suspend
+
+    --    f : Bestow T
+    --    ------------------ :: bestow
+    --    bestow f : T
+    doTypecheck bestow@(Bestow {bestowExpr}) =
+        do eExpr <- typecheck bestowExpr
+           Just (_, thisType) <- findVar $ qLocal thisName
+           let ty = AST.getType eExpr
+           isActive <- isActiveType thisType
+           unless (isActive) $
+                     pushError eExpr $ ExpectingOtherTypeError "an object from an active class" ty
+           return $ setType (bestowType ty) bestow {bestowExpr = eExpr}
 
     --    f : Fut T
     --    ------------------ :: await
@@ -1909,7 +1924,8 @@ checkLocalReturn :: Name -> Type -> Type -> TypecheckM ()
 checkLocalReturn name returnType targetType =
   when (isActiveRefType targetType) $ do
     localReturn <- isLocalType returnType
-    when localReturn $
+    isBestow <- return $ not (isBestowType returnType)
+    when (localReturn && isBestow) $
        tcError $ ThreadLocalReturnError name
     let polymorphicReturn = any isTypeVar $ typeComponents returnType
     when polymorphicReturn $

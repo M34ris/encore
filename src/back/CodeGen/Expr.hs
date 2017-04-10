@@ -63,6 +63,7 @@ typeToPrintfFstr ty
     | Ty.isCapabilityType ty   = "(" ++ show ty ++ ")@%p"
     | Ty.isUnionType ty        = "(" ++ show ty ++ ")@%p"
     | Ty.isFutureType ty       = "Fut@%p"
+    | Ty.isBestowType ty       = "Bestow@%p"
     | Ty.isStreamType ty       = "Stream@%p"
     | Ty.isParType ty          = "Par@%p"
     | Ty.isArrowType ty        = "(" ++ show ty ++ ")@%p"
@@ -603,7 +604,7 @@ instance Translatable A.Expr (State Ctx.Context (CCode Lval, CCode Stat)) where
                            ])
     | syncAccess = delegateUse callTheMethodSync "sync_method_call"
     | sharedAccess = delegateUse callTheMethodFuture "shared_method_call"
-    | otherwise = error $ "Expr.hs: Don't know how to call target of type " ++
+    | otherwise = error $ "Expr.hs: Don't know how to call '" ++ show (PP.ppExpr target) ++ "' of type " ++
                           Ty.showWithKind targetTy ++
                           " at " ++ Meta.showPos (A.getMeta call)
         where
@@ -1067,6 +1068,16 @@ instance Translatable A.Expr (State Ctx.Context (CCode Lval, CCode Stat)) where
   translate A.Forward{A.forwardExpr} =
     error $ "Expr.hs: Target of forward is not method call or future chain: '" ++
             show forwardExpr ++ "'"
+
+  -- TODO:
+  -- 1. Checks on the bestowed object
+  translate bestow@(A.Bestow{A.bestowExpr}) =
+      do (mval, tval) <- translate bestowExpr
+         tmp <- Ctx.genSym
+         let third = asEncoreArgT (translate $ A.getType bestowExpr) (AsExpr mval)
+         let mk = Call bestowWrapperMk [AsExpr encoreCtxVar, runtimeType $ A.getType bestowExpr, third]
+         let foo = Assign (Decl (C.bestow, Var tmp)) mk
+         return (Var tmp, Seq [tval, foo])
 
   translate yield@(A.Yield{A.val}) =
       do (nval, tval) <- translate val

@@ -7,6 +7,7 @@
 typedef struct closure closure_t;
 
 #include "encore.h"
+#include "future.h"
 
 typedef encore_arg_t value_t;
 

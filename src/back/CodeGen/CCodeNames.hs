@@ -169,7 +169,7 @@ qualifyRefType :: Ty.Type -> String
 qualifyRefType ty
   | isRefAtomType ty = sourceToString (Ty.getRefSourceFile ty) ++
                        "_" ++ Ty.getId ty
-  | otherwise = error "CCodeNames.hs: not a ref type: " ++ show ty
+  | otherwise = error $ "CCodeNames.hs: not a ref type: " ++ showWithKind ty
 
 fixPrimes name
     | '\'' `elem` name =
@@ -451,6 +451,21 @@ futureGetActor = Nam "future_get_actor"
 futureChainActor :: CCode Name
 futureChainActor = Nam "future_chain_actor"
 
+bestow :: CCode Ty
+bestow = Ptr $ Typ "bestow_wrapper_t"
+
+bestowWrapperMk :: CCode Name
+bestowWrapperMk = Nam "bestow_wrapper_mk"
+
+bestowGetTarget :: CCode Name
+bestowGetTarget = Nam "bestow_get_target"
+
+bestowGetObject :: CCode Name
+bestowGetObject = Nam "bestow_get_object"
+
+handleClosure :: CCode Name
+handleClosure = Nam "handle_closure"
+
 actorSuspend :: CCode Name
 actorSuspend = Nam "actor_suspend"
 
@@ -513,6 +528,9 @@ streamTraceFn = Nam "stream_trace"
 
 futureTypeRecName :: CCode Name
 futureTypeRecName = Nam $ "future_type"
+
+bestowTypeRecName :: CCode Name
+bestowTypeRecName = Nam $ "bestow_type"
 
 closureTypeRecName :: CCode Name
 closureTypeRecName = Nam $ "closure_type"

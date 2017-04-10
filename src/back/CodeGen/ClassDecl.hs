@@ -75,11 +75,13 @@ dispatchFunDecl cdecl@(A.Class{A.cname, A.cfields, A.cmethods}) =
            Seq $ map assignTypeVar classTypeVars,
            (Switch (Var "_m" `Arrow` Nam "id")
             (
-             (if (A.isMainClass cdecl)
-              then ponyMainClause :
-                   methodClauses (filter ((/= ID.Name "main") . A.methodName) cmethods)
-              else methodClauses $ cmethods
-             ))
+             (
+              if (A.isMainClass cdecl)
+              then concat [[runClosure], [runClosureVal], ponyMainClause :
+                   methodClauses (filter ((/= ID.Name "main") . A.methodName) cmethods)]
+              else concat [[runClosure], [runClosureVal], methodClauses $ cmethods]
+             )
+            )
             (Statement $ Call (Nam "printf") [String "error, got invalid id: %zd", AsExpr $ (Var "_m") `Arrow` (Nam "id")]))]))
      where
        classTypeVars = Ty.getTypeParameters cname
@@ -97,6 +99,18 @@ dispatchFunDecl cdecl@(A.Class{A.cname, A.cfields, A.cmethods}) =
                                           [AsExpr encoreCtxVar,
                                            AsExpr $ (Var "msg") `Arrow` (Nam "argc"),
                                            AsExpr $ (Var "msg") `Arrow` (Nam "argv")]]])
+       runClosure =
+           (Nam "_ENC__MSG_RUN_CLOSURE",
+            Seq $ [Assign (Decl (closure, Var "c")) $ (Cast (Ptr $ Typ "encore_perform_oneway_msg_t") (Var "_m")) `Arrow` Nam "c",
+                   Statement $ Call handleClosure [AsExpr encoreCtxVar, AsExpr $ Var "c"]])
+       runClosureVal =
+           (Nam "_ENC__MSG_FUT_RUN_CLOSURE",
+            Seq $ [Assign (Decl ((Ptr $ Typ "encore_perform_future_msg_t"), Var "msg")) $ Cast (Ptr $ Typ "encore_perform_future_msg_t") (Var "_m"),
+                   Assign (Decl (future, Var "fut")) $ (Cast (Ptr $ encMsgT) (Var "_m")) `Arrow` Nam "_fut",
+                   Assign (Decl (closure, Var "c")) $ (Var "msg") `Arrow` Nam "c",
+                   Assign (Decl (encoreArgT, Var "result")) $ Statement $ Call handleClosure [AsExpr encoreCtxVar, AsExpr (Var "c")],
+                   Statement $ Call futureFulfil [AsExpr encoreCtxVar, AsExpr (Var "fut"), AsExpr (Var "result")]])
+           
        methodClauses = concatMap methodClause
 
        methodClause m = (mthdDispatchClause m mArgs) :
