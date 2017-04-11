@@ -728,7 +728,7 @@ instance Checkable Expr where
               errorInitMethod targetType (name m)
               isActive <- isActiveType targetType
               isShared <- isSharedType targetType
-              isBestow <- return $ isBestowType targetType
+              isBestow <- return $ isBestowedType targetType
               unless (isActive || isShared || isBestow) $
                 tcError $ NonSendableTargetError targetType
             | isMethodCall m = do
@@ -1303,7 +1303,7 @@ instance Checkable Expr where
                      pushError eExpr $ BadBestowTargetError ty
            unless (isActive) $
                      pushError eExpr $ NonActiveBestowError ty
-           return $ setType (bestowType ty) bestow {bestowExpr = eExpr}
+           return $ setType (bestowedType ty) bestow {bestowExpr = eExpr}
 
     --    f : Fut T
     --    ------------------ :: await

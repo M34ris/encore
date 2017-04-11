@@ -329,14 +329,14 @@ instance Show Error where
         printf "Type parameters of '%s' must be distinct" (show ty)
     show (WrongNumberOfMethodArgumentsError name targetType expected actual) =
         let
-            ty = if (isBestowType targetType)
-                 then getResultType targetType
-                 else targetType
+            refName = if (isBestowedType targetType)
+                      then refTypeName (getResultType targetType)
+                      else refTypeName targetType
             nameWithKind =
               (if name == constructorName
                then "Constructor"
                else "Method '" ++ show name ++ "'") ++
-               " in " ++ refTypeName ty
+               " in " ++ refName
         in printf "%s expects %d %s. Got %d"
            nameWithKind expected (arguments expected) actual
     show (WrongNumberOfFunctionArgumentsError name expected actual) =
