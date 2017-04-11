@@ -455,10 +455,9 @@ void encore_send_oneway_closure(pony_ctx_t** _ctx, pony_actor_t* _this, pony_typ
   pony_sendv((*_ctx), ((pony_actor_t*) _this), ((pony_msg_t*) msg));
 }
 
-future_t* encore_send_future_closure(pony_ctx_t** _ctx, pony_actor_t* _this, pony_type_t** runtimeType, closure_t* _enc__arg_c)
+future_t* encore_send_future_closure(pony_ctx_t** _ctx, pony_actor_t* _this, pony_type_t* _type, closure_t* _enc__arg_c)
 {
-  (void) runtimeType;
-  future_t* _fut = future_mk(_ctx, ENCORE_PRIMITIVE);
+  future_t* _fut = future_mk(_ctx, _type);
   pony_gc_send((*_ctx));
   encore_trace_object((*_ctx), _fut, future_trace);
   pony_send_done((*_ctx));  

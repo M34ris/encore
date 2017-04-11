@@ -1,0 +1,27 @@
+active class IntBox
+   var bar : int
+
+   def init(bar : int) : unit
+      this.bar = bar
+   end
+end
+
+local class Foo
+   var box : IntBox
+
+   def init(bar : int) : unit
+      this.box = new IntBox(bar)
+   end
+
+   def bestowBox() : Bestow[IntBox]
+      bestow(this.box)
+   end
+end
+
+active class Main
+   def main() : unit
+      var b = new Foo(11)
+      var box = b.bestowBox()
+      println(1)
+   end
+end

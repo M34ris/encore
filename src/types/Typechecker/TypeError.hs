@@ -206,6 +206,8 @@ data Error =
   | MainMethodCallError
   | ConstructorCallError
   | ExpectingOtherTypeError String Type
+  | BadBestowTargetError Type
+  | NonActiveBestowError Type
   | NonStreamingContextError Expr
   | UnboundFunctionError QualifiedName
   | NonFunctionTypeError Type
@@ -476,6 +478,10 @@ instance Show Error where
     show (ExpectingOtherTypeError something ty) =
         printf "Expected %s but found expression of type '%s'"
                something (show ty)
+    show (BadBestowTargetError ty) =
+        printf "Expected the bestowed target to be of either local or subord type, but found expression of type '%s'" (show ty)
+    show (NonActiveBestowError ty) =
+        printf "Expected bestow to be called from an active object but the object is of type '%s'" (show ty)
     show (NonStreamingContextError e) =
         printf "Cannot have '%s' outside of a streaming method"
                (show $ ppSugared e)

@@ -41,11 +41,15 @@ bestowMessageSend = extend bestowSend
                                                    (", NULL, ", bestowClosure), (");", Skip emeta)]
         | (isBestowType ty) =
           setType (futureType resultTy) $ Embed emeta resultTy [("encore_send_future_closure(_ctx, ", bestowOwner),
-                                                   (", NULL, ", bestowClosure), (");", Skip emeta)]
+                                                                (enctype, Skip emeta), (", ", bestowClosure), (");", Skip emeta)]
         | otherwise = e
         where
           ty = getType target
           resultTy = getResultType $ getType e
+          enctype = if (isActiveRefType resultTy)
+                    then ", ENCORE_ACTIVE"
+                    else ", ENCORE_PRIMITIVE"
+
           bestowClosure = setType (arrowType [] resultTy) $ Closure {emeta = emeta,
                                                                      eparams = [],
                                                                      mty = Just (getType bestowObject),

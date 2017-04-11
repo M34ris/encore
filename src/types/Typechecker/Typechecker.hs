@@ -1291,7 +1291,7 @@ instance Checkable Expr where
 
     --    f : Bestow T
     --    ------------------ :: bestow
-    --    bestow f : T
+    --    bestow f : Bestow T
     doTypecheck bestow@(Bestow {bestowExpr}) =
         do eExpr <- typecheck bestowExpr
            Just (_, thisType) <- findVar $ qLocal thisName
@@ -1300,9 +1300,9 @@ instance Checkable Expr where
            isLocal  <- isLocalType ty
            isSubord <- isSubordinateType ty
            unless (isLocal || isSubord) $
-                     pushError eExpr $ ExpectingOtherTypeError "the bestowed object to be either local or subord" ty
+                     pushError eExpr $ BadBestowTargetError ty
            unless (isActive) $
-                     pushError eExpr $ ExpectingOtherTypeError "an object from an active class" ty
+                     pushError eExpr $ NonActiveBestowError ty
            return $ setType (bestowType ty) bestow {bestowExpr = eExpr}
 
     --    f : Fut T

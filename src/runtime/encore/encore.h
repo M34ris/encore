@@ -102,7 +102,7 @@ typedef struct encore_perform_oneway_msg
 
 void encore_send_oneway_closure(pony_ctx_t** _ctx, pony_actor_t* _this, pony_type_t** runtimeType, closure_t* _enc__arg_c);
 
-future_t* encore_send_future_closure(pony_ctx_t** _ctx, pony_actor_t* _this, pony_type_t** runtimeType, closure_t* _enc__arg_c);
+future_t* encore_send_future_closure(pony_ctx_t** _ctx, pony_actor_t* _this, pony_type_t* _type, closure_t* _enc__arg_c);
 
 typedef struct stack_page {
   void *stack;
