@@ -18,16 +18,6 @@ pony_type_t bestowed_type = {
   .trace = &bestow_trace
 };
 
-static inline void bestow_gc_trace_value(pony_ctx_t *ctx, bestow_wrapper_t *bw)
-{
-  assert(bw);
-  if (bw->type == ENCORE_ACTIVE) {
-      encore_trace_actor(ctx, bw->object.p);
-  } else if (bw->type != ENCORE_PRIMITIVE) {
-    encore_trace_object(ctx, bw->object.p, bw->type->trace);
-  }
-}
-
 bestow_wrapper_t *bestow_wrapper_mk(pony_ctx_t **ctx, pony_type_t *type, encore_arg_t object)
 {
   pony_ctx_t *cctx = *ctx;
@@ -50,12 +40,10 @@ encore_arg_t bestow_get_object(bestow_wrapper_t *bw)
 void bestow_trace(pony_ctx_t *ctx, void* p)
 {
   assert(p);
-  (void) ctx;
-  (void) p;
-  // TODO
+  bestow_wrapper_t *bw = (bestow_wrapper_t *) p;
+  if (bw->type == ENCORE_ACTIVE) {
+      encore_trace_actor(ctx, bw->object.p);
+  } else if (bw->type != ENCORE_PRIMITIVE) {
+    encore_trace_object(ctx, bw->object.p, bw->type->trace);
+  }
 }
-
-/* inline encore_arg_t handle_closure(pony_ctx_t **ctx, closure_t *c) */
-/* { */
-/*   return closure_call(ctx, c, (value_t[1]) { NULL }); */
-/* } */
