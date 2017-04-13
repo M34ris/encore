@@ -13,7 +13,7 @@ active class Foo
       this.box = new IntBox(bar)
    end
 
-   def bestowBox() : bestowed[IntBox]
+   def bestowBox() : Bestowed[IntBox]
       bestow(this.box)
    end
 end

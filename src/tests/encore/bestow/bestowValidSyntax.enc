@@ -8,15 +8,15 @@ active class Foo
       this.box = new IntBox()
    end
 
-   def syntax1() : bestowed[IntBox]
+   def syntax1() : Bestowed[IntBox]
       bestow(this.box)
    end
 
-   def syntax2() : bestowed[IntBox]
+   def syntax2() : Bestowed[IntBox]
       bestow (this.box)
    end
 
-   def syntax3() : bestowed[IntBox]
+   def syntax3() : Bestowed[IntBox]
       bestow this.box
    end   
 end

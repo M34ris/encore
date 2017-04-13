@@ -417,7 +417,7 @@ instance Show InnerType where
         unwords (map show modes) ++
         " (" ++ show arrow{modes = []} ++ ")"
     show FutureType{resultType} = "Fut" ++ brackets resultType
-    show BestowedType{resultType} = "bestowed" ++ brackets resultType
+    show BestowedType{resultType} = "Bestowed" ++ brackets resultType
     show ParType{resultType}    = "Par" ++ brackets resultType
     show StreamType{resultType} = "Stream" ++ brackets resultType
     show ArrayType{resultType}  = brackets resultType

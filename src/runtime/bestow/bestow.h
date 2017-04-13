@@ -5,7 +5,7 @@
 #include "closure.h"
 
 typedef struct bestow_wrapper bestow_wrapper_t;
-extern pony_type_t bestow_type;
+extern pony_type_t bestowed_type;
 
 void bestow_trace(pony_ctx_t *ctx, void* p);
 

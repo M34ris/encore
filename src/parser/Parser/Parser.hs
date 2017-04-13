@@ -177,6 +177,7 @@ reservedNames =
     ["EMBED"
     ,"END"
     ,"Fut"
+    ,"Bestowed"
     ,"Maybe"
     ,"Par"
     ,"Stream"
@@ -199,7 +200,6 @@ reservedNames =
     ,"for"
     ,"fun"
     ,"bestow"
-    ,"bestowed"
     ,"forward"
     ,"if"
     ,"import"
@@ -383,7 +383,7 @@ typ = makeExprParser singleType opTable
           builtin' t r = liftM t (reserved r >> brackets typ)
           maybe  = builtin' maybeType "Maybe"
           fut    = builtin' futureType "Fut"
-          bestow = builtin' bestowedType "bestowed"
+          bestow = builtin' bestowedType "Bestowed"
           par    = builtin' parType "Par"
           stream = builtin' streamType "Stream"
       refType = do

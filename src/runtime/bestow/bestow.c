@@ -12,7 +12,7 @@ struct bestow_wrapper
   pony_type_t  *type;
 };
 
-pony_type_t bestow_type = {
+pony_type_t bestowed_type = {
   .id = ID_BESTOW,
   .size = sizeof(struct bestow_wrapper),
   .trace = &bestow_trace
