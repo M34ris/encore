@@ -466,6 +466,9 @@ findMethodWithCalledType ty name
         unless (all (==calledType) (map snd results)) $
                tcError $ UnionMethodAmbiguityError ty name
         return result
+    | isBestowedType ty = do
+        (header, ty') <- findMethodWithCalledType (getResultType ty) name
+        return (header, bestowedType ty')
     | otherwise = do
         isKnown <- isKnownRefType ty
         unless isKnown $
@@ -696,7 +699,8 @@ partly isKind ty
         tyIsKind <- isKind ty
         return $ tyIsKind || capIsPartly
     | hasResultType ty &&
-      not (isArrowType ty) =
+      not (isArrowType ty) &&
+      not (isBestowedType ty) =
         partly isKind (getResultType ty)
     | isTupleType ty =
         anyM (partly isKind) (getArgTypes ty)
@@ -764,6 +768,7 @@ isActiveType ty
     | isClassType ty && isModeless ty = do
         capability <- findCapability ty
         isActiveType capability
+    | isBestowedType ty = return True
     | isClassType ty =
         return $ isActiveSingleType ty
     | isCapabilityType ty =
