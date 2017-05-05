@@ -21,6 +21,14 @@ encorec: dirs pony stack-setup
 stack-setup:
 	stack setup --system-ghc
 
+atomic: encorec
+	cd src/tests && \
+	./bin/test encore/atomic
+
+bestow: encorec
+	cd src/tests && \
+	./bin/test encore/bestow
+
 test: encorec
 	make -C $(SRC_DIR) test
 

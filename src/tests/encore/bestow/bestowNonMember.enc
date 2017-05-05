@@ -1,0 +1,27 @@
+local class IntBox
+   var bar : int
+
+   def init(bar : int) : unit
+      this.bar = bar
+      println(this.bar)
+   end
+
+   def increment() : unit
+      this.bar += 1
+      println(this.bar)
+   end
+end
+
+active class Foo : Actor
+   def bestowBox(bar : int) : Bestowed[IntBox]
+      bestow (new IntBox(bar))
+   end
+end
+
+active class Main
+   def main() : unit
+      var b = new Foo()
+      var box = get(b ! bestowBox(11))
+      box ! increment()
+   end
+end

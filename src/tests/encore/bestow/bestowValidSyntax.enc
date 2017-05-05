@@ -1,0 +1,32 @@
+local class IntBox
+end
+
+active class Foo : Actor
+   var box : IntBox
+
+   def init(bar : int) : unit
+      this.box = new IntBox()
+   end
+
+   def syntax1() : Bestowed[IntBox]
+      bestow(this.box)
+   end
+
+   def syntax2() : Bestowed[IntBox]
+      bestow (this.box)
+   end
+
+   def syntax3() : Bestowed[IntBox]
+      bestow this.box
+   end   
+end
+
+active class Main
+   def main() : unit
+      var b = new Foo(11)
+      var box = get(b ! syntax1())
+      var box = get(b ! syntax2())
+      var box = get(b ! syntax3())
+      println(1)
+   end
+end
