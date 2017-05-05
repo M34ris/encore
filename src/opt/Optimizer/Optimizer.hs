@@ -30,9 +30,112 @@ optimizeProgram p@(Program{classes, traits, functions}) =
 
 -- | The functions in this list will be performed in order during optimization
 optimizerPasses :: [Expr -> Expr]
-optimizerPasses = [constantFolding, sugarPrintedStrings, tupleMaybeIdComparison,
-                   dropBorrowBlocks, forwardGeneral]
+optimizerPasses = [constantFolding, sugarPrintedStrings, tupleMaybeIdComparison, dropBorrowBlocks,
+                   forwardGeneral, atomicPerformClosure, bestowExpression, bestowPerformClosure]
 
+atomicPerformClosure :: Expr -> Expr
+atomicPerformClosure = extend performClosure
+  where
+    performClosure e@(Atomic{emeta, target, name, body}) = awaitPerform
+      where
+        targetTy = getType target        
+        resultTy = getType e
+        exprTy = futureType resultTy
+        bestowTarget = setType (bestowObjectType (getResultType targetTy)) $ target
+        performTarget = if (isBestowedType targetTy)
+                        then bestowOwner
+                        else target          
+
+        awaitPerform = Await{emeta = emeta,
+                             val = markAsNotStat perform}
+        perform = setType exprTy $
+                  MessageSend{emeta = emeta,
+                              target = performTarget,
+                              name = Name "perform",
+                              args = [closure],
+                              typeArguments = [resultTy]}
+        closure = setType (arrowType [] resultTy) $
+                  Closure{emeta = emeta,
+                          eparams = [],
+                          mty = Just targetTy,
+                          body = filterBody body}
+        bestowOwner = setType actorObjectType $
+                      FieldAccess{emeta = emeta, target = bestowTarget, name = Name "owner"}
+    performClosure e = e
+
+    filterBody :: Expr -> Expr
+    filterBody e@(Get{val})
+      | isMethodCall val && isAtomicTarget (target val) = filterBody val
+      | isAtomicTarget val = filterBody val
+      | otherwise = e
+    filterBody e@(MethodCall{target = AtomicTarget{emeta, target}, args})
+      | isVarAccess target && isBestow =
+          setType (filterFutType $ getType e)$ e{target = bestowObject, args = map filterBody args}
+      | otherwise =
+          setType (getResultType $ getType e) $ e{args = map filterBody args}
+      where        
+        atomicTy = getType target
+        innerTy = getResultType atomicTy
+        isBestow = isBestowedType atomicTy
+        bestowTarget = setType (bestowObjectType innerTy) $ target
+        bestowObject = setType innerTy $
+                       FieldAccess{emeta = emeta, target = bestowTarget, name = Name "object"}
+
+        filterFutType :: Type -> Type
+        filterFutType ty
+          | isFutureType ty = getResultType ty
+          | otherwise = ty
+    filterBody e@(AtomicTarget{target}) = filterBody target
+    filterBody e = putChildren (map filterBody (getChildren e)) e
+
+bestowExpression :: Expr -> Expr
+bestowExpression = extend bestowTranslate
+  where
+    bestowTranslate e@(Bestow{emeta, bestowExpr}) = setType (bestowedType bestowTy) $ bestowBox
+      where
+        bestowTy = getType bestowExpr
+        bestowBox = NewWithInit{emeta = emeta,
+                                ty = bestowObjectType bestowTy,
+                                args = [bestowExpr, VarAccess{emeta, qname = qName "this"}]}
+    bestowTranslate e = e
+
+bestowPerformClosure :: Expr -> Expr
+bestowPerformClosure = extend bestowSend
+    where
+      bestowSend e@(MessageSend{emeta, target, name, args, typeArguments})
+        | (isBestowedType targetTy) = setType exprTy $ perform
+        | otherwise = e
+        where
+          targetTy = getType target
+          resultTy = getResultType $ getType e
+          innerTy = getResultType targetTy
+          exprTy = if (isStatement e)
+                   then unitType
+                   else futureType resultTy
+          bestowTarget = setType (bestowObjectType innerTy) $ target
+
+          perform = MessageSend{emeta = emeta,
+                                target = bestowOwner,
+                                name = Name "perform",
+                                args = [bestowClosure],
+                                typeArguments = [resultTy]}
+          bestowClosure = setType (arrowType [] resultTy) $
+                          Closure{emeta = emeta,
+                                  eparams = [],
+                                  mty = Just (getType bestowObject),
+                                  body = bestowBody}
+          bestowBody = setType resultTy $
+                       MethodCall{emeta = emeta,
+                                  typeArguments = typeArguments,
+                                  target = bestowObject,
+                                  name = name,
+                                  args = args}
+          bestowObject = setType innerTy $
+                         FieldAccess{emeta = emeta, target = bestowTarget, name = Name "object"}
+          bestowOwner = setType actorObjectType $
+                        FieldAccess{emeta = emeta, target = bestowTarget, name = Name "owner"}
+      bestowSend e = e
+      
 -- Note that this is not intended as a serious optimization, but
 -- as an example to how an optimization could be made. As soon as
 -- there is a serious optimization in place, please remove this

@@ -7,6 +7,7 @@ import AST.PrettyPrinter
 import AST.Util
 import Types
 import Text.Megaparsec
+import Debug.Trace
 
 import qualified Data.List as List
 
@@ -308,6 +309,78 @@ desugar new@NewWithInit{emeta, ty, args}
     , isStringObjectType ty'
     , length args' == 1 = new'
     | otherwise = new
+
+desugar atomic@Atomic{emeta, target, name, body}
+  | isVarAccess target = atomic{target = target, body = atomicBody}
+  | otherwise = Let{emeta = emeta, mutability = Val,
+                    decls = [([VarNoType{varName = Name "_atomic"}], target)],                    
+                    body  = atomic{target = VarAccess{emeta = getMeta target,
+                                                      qname = qName "_atomic"},
+                                   body = atomicBody}}
+  where
+    atomicBody = mapAtomicBody body ([name, Name "this"] ++ (extractNames target))
+
+    mapAtomicBody :: Expr -> [Name] -> Expr
+    mapAtomicBody e@(MessageSend{emeta, typeArguments, target, name, args}) names
+      | not $ isAtomicRef target names = e{args = mapAtomicArgs args names}
+      | otherwise = atomicExpr
+      where
+        syncTarget = AtomicTarget{emeta = getMeta target, target = target}
+        atomicExpr = Get{emeta = emeta,
+                         val = MethodCall{emeta = emeta,
+                                          typeArguments = typeArguments,
+                                          target = syncTarget,
+                                          name = name,
+                                          args = mapAtomicArgs args names}}
+
+        mapAtomicArgs :: [Expr] -> [Name] -> [Expr]
+        mapAtomicArgs [] _ = []
+        mapAtomicArgs (e:es) names = (mapAtomicBody e names):(mapAtomicArgs es names)
+    mapAtomicBody e@(VarAccess{emeta}) names
+      | isAtomicRef e names = AtomicTarget{emeta = emeta, target = e}
+      | otherwise = e
+    mapAtomicBody e@(Let{decls, body}) names =
+      e{decls = mapAtomicDecl decls names, body = mapAtomicBody body (mapAllMatchDecl decls names)}
+    mapAtomicBody e@(MiniLet{decl = (decl', expr)}) names =
+      e{decl = (decl', mapAtomicBody expr names)}
+    mapAtomicBody e names = putChildren (mapAllChildren $ getChildren e) e
+      where
+        mapAllChildren [] = []
+        mapAllChildren (x:xs) = (mapAtomicBody x names):(mapAllChildren xs)
+
+    mapAtomicDecl :: [([VarDecl], Expr)] -> [Name] -> [([VarDecl], Expr)]
+    mapAtomicDecl [] _ = []
+    mapAtomicDecl decl@([(decls, expr)]) names = map mapExpr decl
+      where
+        mapExpr :: ([VarDecl], Expr) -> ([VarDecl], Expr)
+        mapExpr (decls', expr') = (decls', mapAtomicBody expr' names)
+
+    mapAllMatchDecl :: [([VarDecl], Expr)] -> [Name] -> [Name]
+    mapAllMatchDecl [] names = []
+    mapAllMatchDecl (x:xs) names = (matchDecl x names) ++ (mapAllMatchDecl xs names)
+
+    matchDecl :: ([VarDecl], Expr) -> [Name] -> [Name]
+    matchDecl (decls, expr) names
+      | isVarAccess expr && isAtomicRef expr names = mapAllDecls decls names
+      | otherwise = names
+      where
+        isAtomic = isAtomicRef expr names
+        mapAllDecls [] names = names
+        mapAllDecls (x:xs) names = mapAllDecls xs ((varName x):names)
+
+    isAtomicRef :: Expr -> [Name] -> Bool
+    isAtomicRef e names = matchName (extractNames e) names
+      where
+        matchName [] _ = False
+        matchName _ [] = False
+        matchName (name:ys) (x:xs) = (matchName' name x) ||
+                                     (matchName (name:ys) xs) ||
+                                     (matchName (ys) (x:xs))
+        matchName' (Name l) (Name r) = l == r
+
+    extractNames :: Expr -> [Name]
+    extractNames e@(VarAccess {qname}) = [qnlocal qname]
+    extractNames _ = []
 
 -- Build String objects from literals
 desugar s@StringLiteral{emeta, stringLit} =
