@@ -318,7 +318,7 @@ desugar atomic@Atomic{emeta, target, name, body}
                                                       qname = qName "_atomic"},
                                    body = atomicBody}}
   where
-    atomicBody = mapAtomicBody body ([name, Name "this"] ++ (extractNames target))
+    atomicBody = mapAtomicBody body (name:(extractNames target))
 
     mapAtomicBody :: Expr -> [Name] -> Expr
     mapAtomicBody e@(MessageSend{emeta, typeArguments, target, name, args}) names
