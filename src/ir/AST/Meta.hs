@@ -97,8 +97,8 @@ setMetaArrowType ty m
 isStat :: Meta a -> Bool
 isStat Meta{statement} = statement
 
-makeStat :: Meta a -> Meta a
-makeStat m@Meta{statement} = m{statement=True}
+makeStat :: Meta a -> Bool -> Meta a
+makeStat m@Meta{statement} isStat= m{statement=isStat}
 
 isFree :: Meta a -> Bool
 isFree m = captureStatus m == Just Free

@@ -596,6 +596,8 @@ data Expr = Skip {emeta :: Meta Expr}
                      eparams :: [ParamDecl],
                      mty :: Maybe Type,
                      body :: Expr}
+          | Bestow {emeta :: Meta Expr,
+                    bestowExpr :: Expr}
           | PartySeq {emeta :: Meta Expr,
                       par :: Expr,
                       seqfunc :: Expr}
@@ -652,6 +654,12 @@ data Expr = Skip {emeta :: Meta Expr}
           | Match {emeta :: Meta Expr,
                    arg :: Expr,
                    clauses :: [MatchClause]}
+          | Atomic {emeta  :: Meta Expr,
+                    target :: Expr,
+                    name   :: Name,
+                    body   :: Expr}
+          | AtomicTarget {emeta  :: Meta Expr,
+                          target :: Expr}
           | Borrow {emeta  :: Meta Expr,
                     target :: Expr,
                     name   :: Name,
@@ -759,6 +767,18 @@ isFunctionCall _ = False
 isThisAccess :: Expr -> Bool
 isThisAccess VarAccess {qname = QName{qnlocal}} = qnlocal == Name "this"
 isThisAccess _ = False
+
+isVarAccess :: Expr -> Bool
+isVarAccess VarAccess{} = True
+isVarAccess _ = False
+
+isAtomicTarget :: Expr -> Bool
+isAtomicTarget AtomicTarget {} = True
+isAtomicTarget _ = False
+
+getAtomicTarget :: Expr -> Expr
+getAtomicTarget AtomicTarget {emeta, target} = target
+getAtomicTarget e = e
 
 isClosure :: Expr -> Bool
 isClosure Closure {} = True

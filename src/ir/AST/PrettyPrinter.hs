@@ -273,6 +273,7 @@ ppExpr MessageSend {target, name, args, typeArguments} =
     maybeParens target <> "!" <> ppName name <>
       withTypeArguments typeArguments <>
       parens (commaSep (map ppExpr args))
+ppExpr Bestow {bestowExpr} = "bestow" <+> (ppExpr bestowExpr)
 ppExpr PartySeq {par, seqfunc} = ppExpr par <+> ">>" <+> parens (ppExpr seqfunc)
 ppExpr PartyPar {parl, parr} = ppExpr parl <+> "|||" <+> ppExpr parr
 ppExpr PartyReduce {seqfun, pinit, par} = "reduce" <>
@@ -368,6 +369,11 @@ ppExpr Match {arg, clauses} =
           indent (ppBody mchandler) $+$
         "end"
       ppMatchClauses = foldr (($+$) . indent . ppClause) ""
+ppExpr Atomic {target, name, body} =
+    "atomic" <+> ppExpr target <+> "as" <+> ppName name <+> "in" $+$
+      indent (ppBody body) $+$
+    "end"
+ppExpr AtomicTarget{target} = "AtomicTarget" <> parens (ppExpr target)
 ppExpr Borrow {target, name, body} =
     "borrow" <+> ppExpr target <+> "as" <+> ppName name <+> "in" $+$
       indent (ppBody body) $+$
