@@ -63,6 +63,7 @@ typeToPrintfFstr ty
     | Ty.isCapabilityType ty   = "(" ++ show ty ++ ")@%p"
     | Ty.isUnionType ty        = "(" ++ show ty ++ ")@%p"
     | Ty.isFutureType ty       = "Fut@%p"
+    | Ty.isBestowedType ty     = "Bestowed[" ++ (show ty) ++ "]@%p"
     | Ty.isStreamType ty       = "Stream@%p"
     | Ty.isParType ty          = "Par@%p"
     | Ty.isArrowType ty        = "(" ++ show ty ++ ")@%p"
@@ -607,21 +608,25 @@ instance Translatable A.Expr (State Ctx.Context (CCode Lval, CCode Stat)) where
                           Ty.showWithKind targetTy ++
                           " at " ++ Meta.showPos (A.getMeta call)
         where
-          targetTy = A.getType target
+          sTarget = if A.isAtomicTarget target
+                    then A.getAtomicTarget target
+                    else target
+          targetTy = A.getType sTarget
           retTy = A.getType call
           delegateUse methodCall sym = do
             result <- Ctx.genNamedSym sym
-            (ntarget, ttarget) <- translate target
+            (ntarget, ttarget) <- translate sTarget
             (initArgs, resultExpr) <-
               methodCall ntarget targetTy name args typeArguments retTy
             return (Var result,
               Seq $
                 ttarget :
-                targetNullCheck ntarget target name emeta "." :
+                targetNullCheck ntarget sTarget name emeta "." :
                 initArgs ++
                 [Assign (Decl (translate retTy, Var result)) resultExpr]
               )
           syncAccess = A.isThisAccess target ||
+                       A.isAtomicTarget target ||
                        (Ty.isPassiveRefType . A.getType) target
           sharedAccess = Ty.isSharedSingleType $ A.getType target
 
