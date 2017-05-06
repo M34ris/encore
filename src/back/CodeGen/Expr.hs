@@ -1186,22 +1186,23 @@ instance Translatable A.Expr (State Ctx.Context (CCode Lval, CCode Stat)) where
           (mapM insertVar vars)
           (filterM localTypeVar typeVars >>= mapM insertTypeVar)
 
-      insertVar (name, _) = do
+      insertVar (name, ty) = do
         c <- get
-
         let tname = fromMaybe (AsLval $ globalClosureName name)
                               (Ctx.substLkp c name)
-        return $ assignVar (fieldName (ID.qnlocal name)) tname
+        return $ assignVar (fieldName (ID.qnlocal name)) tname ty
       insertTypeVar ty = do
         c <- get
         let
           Just tname = Ctx.substLkp c name
           fName = typeVarRefName ty
-        return $ assignVar fName tname
+        return $ assignVar fName tname ty
         where
           name = ID.qName $ Ty.getId ty
-      assignVar :: (UsableAs e Expr) => CCode Name -> CCode e -> CCode Stat
-      assignVar lhs rhs = Assign ((Deref envName) `Dot` lhs) rhs
+      assignVar :: (UsableAs e Expr) => CCode Name -> CCode e -> Ty.Type -> CCode Stat      
+      assignVar lhs rhs ty
+        | Ty.isAtomicVarType ty = Assign ((Deref envName) `Dot` lhs) (Amp rhs)
+        | otherwise = Assign ((Deref envName) `Dot` lhs) rhs
       localTypeVar ty = do
         c <- get
         return $ isJust $ Ctx.substLkp c name

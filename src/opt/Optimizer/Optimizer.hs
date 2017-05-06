@@ -37,16 +37,16 @@ optimizerPasses = [constantFolding, sugarPrintedStrings, tupleMaybeIdComparison,
 atomicPerformClosure :: Expr -> Expr
 atomicPerformClosure = extend performClosure
   where
-    performClosure e@(Atomic{emeta, target, name, body}) = --trace (show e) $
-      awaitPerform
+    performClosure e@(Atomic{emeta, target, name, body}) = awaitPerform
       where
-        targetTy = getType target        
+        targetTy = getType target
         resultTy = getType e
         exprTy = futureType resultTy
         bestowTarget = setType (bestowObjectType (getResultType targetTy)) $ target
         performTarget = if (isBestowedType targetTy)
                         then bestowOwner
-                        else target          
+                        else target
+        atomicVars = name:(Name "this"):(Name "_atomic"):(varAccessName target)
 
         awaitPerform = Await{emeta = emeta,
                              val = markAsNotStat perform}
@@ -60,7 +60,7 @@ atomicPerformClosure = extend performClosure
                   Closure{emeta = emeta,
                           eparams = [],
                           mty = Just targetTy,
-                          body = filterBody body (name:(varAccessName target))}
+                          body = filterBody body atomicVars}
         bestowOwner = setType actorObjectType $
                       FieldAccess{emeta = emeta, target = bestowTarget, name = Name "owner"}
     performClosure e = e
@@ -98,8 +98,8 @@ atomicPerformClosure = extend performClosure
     --filterBody e@(MiniLet{decl}) names = --probably needed
     --filterBody e@(Assign{}) = --maybe needed
     filterBody e@(VarAccess{qname}) names
-      | isAtomicVar (qnlocal qname) names = trace "1" setType (atomicVarType $ getType e) $ e
-      | otherwise = trace "0" e
+      | isAtomicVar (qnlocal qname) names = setType (atomicVarType $ getType e) $ e
+      | otherwise = e
     filterBody e@(AtomicTarget{target}) names = filterBody target names
     filterBody e names = putChildren (mapFilterBody (getChildren e) names) e
 
@@ -126,7 +126,7 @@ atomicPerformClosure = extend performClosure
       | matchName name decl = False
       | otherwise = isAtomicVar name decls
       where
-        matchName (Name l) (Name r) = trace ("l: " ++ l ++ ", r: " ++ r) $ l == r
+        matchName (Name l) (Name r) = trace (show l) $ l == r
 
 bestowExpression :: Expr -> Expr
 bestowExpression = extend bestowTranslate
