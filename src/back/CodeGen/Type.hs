@@ -8,6 +8,8 @@ module CodeGen.Type where
 import CodeGen.Typeclasses
 import CodeGen.CCodeNames
 
+import Debug.Trace
+
 import CCode.Main
 import CCode.PrettyCCode ()
 
@@ -34,6 +36,7 @@ instance Translatable Ty.Type (CCode Ty) where
         | Ty.isTypeVar ty        = encoreArgT
         | Ty.isFutureType ty     = future
         | Ty.isBestowedType ty   = translate $ Ty.bestowObjectType (Ty.getResultType ty)
+        | Ty.isAtomicVarType ty  = translate $ Ty.getResultType ty
         | Ty.isStreamType ty     = stream
         | Ty.isArrayType ty      = array
         | Ty.isRangeType ty      = range

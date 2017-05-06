@@ -1,0 +1,21 @@
+active class Foo : Actor
+  def local(l : Local) : unit
+    ()
+  end
+end
+
+local class Local
+end
+
+active class Main
+  var l : Local
+  
+  def main() : unit
+    this.l = new Local()
+    var foo = new Foo()
+    atomic foo as bar in
+      val a = this.l
+      bar ! local(a)
+    end
+  end
+end

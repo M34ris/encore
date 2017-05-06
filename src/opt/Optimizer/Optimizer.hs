@@ -6,6 +6,7 @@ import AST.Util
 import qualified AST.Meta as Meta
 import Types
 import Control.Applicative (liftA2)
+import Debug.Trace
 
 optimizeProgram :: Program -> Program
 optimizeProgram p@(Program{classes, traits, functions}) =
@@ -36,7 +37,8 @@ optimizerPasses = [constantFolding, sugarPrintedStrings, tupleMaybeIdComparison,
 atomicPerformClosure :: Expr -> Expr
 atomicPerformClosure = extend performClosure
   where
-    performClosure e@(Atomic{emeta, target, name, body}) = awaitPerform
+    performClosure e@(Atomic{emeta, target, name, body}) = --trace (show e) $
+      awaitPerform
       where
         targetTy = getType target        
         resultTy = getType e
@@ -58,21 +60,21 @@ atomicPerformClosure = extend performClosure
                   Closure{emeta = emeta,
                           eparams = [],
                           mty = Just targetTy,
-                          body = filterBody body}
+                          body = filterBody body (name:(varAccessName target))}
         bestowOwner = setType actorObjectType $
                       FieldAccess{emeta = emeta, target = bestowTarget, name = Name "owner"}
     performClosure e = e
 
-    filterBody :: Expr -> Expr
-    filterBody e@(Get{val})
-      | isMethodCall val && isAtomicTarget (target val) = filterBody val
-      | isAtomicTarget val = filterBody val
+    filterBody :: Expr -> [Name] -> Expr
+    filterBody e@(Get{val}) names
+      | isMethodCall val && isAtomicTarget (target val) = filterBody val names
+      | isAtomicTarget val = filterBody val names
       | otherwise = e
-    filterBody e@(MethodCall{target = AtomicTarget{emeta, target}, args})
+    filterBody e@(MethodCall{target = AtomicTarget{emeta, target}, args}) names
       | isVarAccess target && isBestow =
-          setType (filterFutType $ getType e)$ e{target = bestowObject, args = map filterBody args}
+          setType (filterFutType $ getType e)$ e{target = bestowObject, args = mapFilterBody args names}
       | otherwise =
-          setType (getResultType $ getType e) $ e{args = map filterBody args}
+          setType (getResultType $ getType e) $ e{args = mapFilterBody args names}
       where        
         atomicTy = getType target
         innerTy = getResultType atomicTy
@@ -85,8 +87,46 @@ atomicPerformClosure = extend performClosure
         filterFutType ty
           | isFutureType ty = getResultType ty
           | otherwise = ty
-    filterBody e@(AtomicTarget{target}) = filterBody target
-    filterBody e = putChildren (map filterBody (getChildren e)) e
+    filterBody e@(Let{decls, body}) names =
+      e{decls = mapAtomicDecl decls names, body = filterBody body extNames}
+      where
+        extNames = names ++ (addNames decls)
+
+        addNames :: [([VarDecl], Expr)] -> [Name]
+        addNames [] = []
+        addNames (decl:decls) = (extractName (fst decl)) ++ addNames decls
+    --filterBody e@(MiniLet{decl}) names = --probably needed
+    --filterBody e@(Assign{}) = --maybe needed
+    filterBody e@(VarAccess{qname}) names
+      | isAtomicVar (qnlocal qname) names = trace "1" setType (atomicVarType $ getType e) $ e
+      | otherwise = trace "0" e
+    filterBody e@(AtomicTarget{target}) names = filterBody target names
+    filterBody e names = putChildren (mapFilterBody (getChildren e) names) e
+
+    mapFilterBody :: [Expr] -> [Name] -> [Expr]
+    mapFilterBody [] _ = []
+    mapFilterBody (x:xs) names = (filterBody x names):(mapFilterBody xs names)
+
+    mapAtomicDecl :: [([VarDecl], Expr)] -> [Name] -> [([VarDecl], Expr)]
+    mapAtomicDecl decls names = map filterExpr decls
+      where
+        filterExpr (decls', expr') = (decls', filterBody expr' names)
+
+    extractName :: [VarDecl] -> [Name]
+    extractName [] = []
+    extractName (decl:decls) = (varName decl):(extractName decls)
+
+    varAccessName :: Expr -> [Name]
+    varAccessName VarAccess{qname} = [qnlocal qname]
+    varAccessName _ = []
+
+    isAtomicVar :: Name -> [Name] -> Bool
+    isAtomicVar _ [] = True
+    isAtomicVar name (decl:decls)
+      | matchName name decl = False
+      | otherwise = isAtomicVar name decls
+      where
+        matchName (Name l) (Name r) = trace ("l: " ++ l ++ ", r: " ++ r) $ l == r
 
 bestowExpression :: Expr -> Expr
 bestowExpression = extend bestowTranslate

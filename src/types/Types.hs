@@ -8,6 +8,8 @@ module Types(
             ,isFutureType
             ,bestowedType
             ,isBestowedType
+            ,atomicVarType
+            ,isAtomicVarType
             ,parType
             ,isParType
             ,streamType
@@ -307,6 +309,7 @@ data InnerType =
                    }
         | FutureType{resultType :: Type}
         | BestowedType{resultType :: Type}
+        | AtomicVarType{resultType :: Type}
         | ParType{resultType :: Type}
         | StreamType{resultType :: Type}
         | ArrayType{resultType :: Type}
@@ -360,7 +363,7 @@ getModes ty
 
 hasResultType x
   | isArrowType x || isFutureType x || isBestowedType x || isParType x ||
-    isStreamType x || isArrayType x || isMaybeType x = True
+    isAtomicVarType x || isStreamType x || isArrayType x || isMaybeType x = True
   | otherwise = False
 
 getRefNamespace ty
@@ -437,6 +440,7 @@ instance Show InnerType where
         " (" ++ show arrow{modes = []} ++ ")"
     show FutureType{resultType} = "Fut" ++ brackets resultType
     show BestowedType{resultType} = "Bestowed" ++ brackets resultType
+    show AtomicVarType{resultType} = show resultType
     show ParType{resultType}    = "Par" ++ brackets resultType
     show StreamType{resultType} = "Stream" ++ brackets resultType
     show ArrayType{resultType}  = brackets resultType
@@ -865,6 +869,10 @@ isFutureType _ = False
 bestowedType = typ . BestowedType
 isBestowedType Type{inner = BestowedType {}} = True
 isBestowedType _ = False
+
+atomicVarType = typ . AtomicVarType
+isAtomicVarType Type{inner = AtomicVarType {}} = True
+isAtomicVarType _ = False
 
 maybeType = typ . MaybeType
 isMaybeType Type{inner = MaybeType {}} = True

@@ -96,23 +96,27 @@ translateClosure closure typeVars table
         StructDecl (Typ $ show name) $
           (map translateBinding vars) ++ (map translateTypeVar typeVars)
           where
-            translateBinding (name, ty) =
-              (translate ty, AsLval $ fieldName name)
+            translateBinding (name, ty)
+              | isAtomicVarType ty = (Ptr (translate ty), AsLval $ fieldName name)
+              -- | False = (Ptr (translate ty), AsLval $ fieldName name)
+              | otherwise = (translate ty, AsLval $ fieldName name) -- (Ptr (translate ty), AsLval $ fieldName name)
             translateTypeVar ty =
               (Ptr ponyTypeT, AsLval $ typeVarRefName ty)
 
       extractEnvironment envName vars typeVars =
         map assignVar vars ++ map assignTypeVar typeVars
         where
-          assignVar (name, ty) =
-            let fName = fieldName name
-            in Assign (Decl (translate ty, AsLval fName)) $ getVar fName
+          assignVar (name, ty)
+            | isAtomicVarType ty = Assign (Decl (Ptr (translate ty), AsLval fName)) $ getVar fName
+            | otherwise = Assign (Decl (translate ty, AsLval fName)) $ getVar fName
+            where
+              fName = fieldName name
           assignTypeVar ty =
             let fName = typeVarRefName ty
             in Seq [Assign (Decl (Ptr ponyTypeT, AsLval fName)) $ getVar fName,
                     encoreAssert (AsExpr $ AsLval fName)]
           getVar name =
-              (Deref $ Cast (Ptr $ Struct envName) envVar) `Dot` name
+              (Deref $ Cast (Ptr $ Struct envName) envVar) `Dot` name -- Deref ((Deref $ Cast (Ptr $ Struct envName) envVar) `Dot` name)
 
       tracefunDecl traceName envName members fTypeVars =
         Function (Static void) traceName args body

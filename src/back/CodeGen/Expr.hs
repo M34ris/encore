@@ -11,6 +11,8 @@ import CodeGen.Type
 import qualified CodeGen.Context as Ctx
 import CodeGen.DTrace
 
+import Debug.Trace
+
 import CCode.Main
 import CCode.PrettyCCode
 
@@ -64,6 +66,7 @@ typeToPrintfFstr ty
     | Ty.isUnionType ty        = "(" ++ show ty ++ ")@%p"
     | Ty.isFutureType ty       = "Fut@%p"
     | Ty.isBestowedType ty     = "Bestowed[" ++ (show ty) ++ "]@%p"
+    | Ty.isAtomicVarType ty    = typeToPrintfFstr $ Ty.getResultType ty
     | Ty.isStreamType ty       = "Stream@%p"
     | Ty.isParType ty          = "Par@%p"
     | Ty.isArrowType ty        = "(" ++ show ty ++ ")@%p"
@@ -361,7 +364,10 @@ instance Translatable A.Expr (State Ctx.Context (CCode Lval, CCode Stat)) where
         mkLval (A.VarAccess {A.qname}) =
            do ctx <- get
               case Ctx.substLkp ctx qname of
-                Just substName -> return substName
+                Just substName ->
+                  if (Ty.isAtomicVarType $ A.getType lhs)
+                  then return $ Deref substName
+                  else return substName
                 Nothing -> error $ "Expr.hs: LVal is not assignable: " ++
                                    show qname
         mkLval (A.FieldAccess {A.target, A.name}) =
@@ -411,11 +417,13 @@ instance Translatable A.Expr (State Ctx.Context (CCode Lval, CCode Stat)) where
                             Int index,
                             asEncoreArgT (translate ty) $ AsExpr narg]
 
-  translate (A.VarAccess {A.qname}) = do
+  translate acc@(A.VarAccess {A.qname}) = do
       c <- get
       case Ctx.substLkp c qname of
         Just substName ->
-            return (substName , Skip)
+          if (Ty.isAtomicVarType $ A.getType acc)
+          then return $ (Deref substName , Skip)
+          else return (substName , Skip)
         Nothing -> do
           (_, header) <- gets $ Ctx.lookupFunction qname
           let name = resolveFunctionSource header
