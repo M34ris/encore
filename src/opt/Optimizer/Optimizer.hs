@@ -101,10 +101,12 @@ atomicPerformClosure = extend performClosure
     filterBody e@(Match{}) names = putChildren (mapFilterBody (getChildren e) extNames) e
       where
         extNames = names ++ (extractMatchClauseNames e)
-    filterBody e@(FieldAccess{}) _ = e
+    -- filterBody e@(FieldAccess{}) _ = e
     filterBody e@(VarAccess{qname}) names
-      | isAtomicVar (qnlocal qname) names = setType (atomicVarType $ getType e) $ e
-      | otherwise = e
+      | isAtomicVar (qnlocal qname) names = --trace "1" $
+        setType (atomicVarType $ getType e) $ e
+      | otherwise = --trace "0" $
+        e
     filterBody e@(AtomicTarget{target}) names = filterBody target names
     filterBody e names = putChildren (mapFilterBody (getChildren e) names) e
 
