@@ -37,7 +37,8 @@ optimizerPasses = [constantFolding, sugarPrintedStrings, tupleMaybeIdComparison,
 atomicPerformClosure :: Expr -> Expr
 atomicPerformClosure = extend performClosure
   where
-    performClosure e@(Atomic{emeta, target, name, body}) = awaitPerform
+    performClosure e@(Atomic{emeta, target, name, body}) = --trace (show awaitPerform)
+      awaitPerform
       where
         targetTy = getType target
         resultTy = getType e
@@ -95,8 +96,12 @@ atomicPerformClosure = extend performClosure
         addNames :: [([VarDecl], Expr)] -> [Name]
         addNames [] = []
         addNames (decl:decls) = (extractName (fst decl)) ++ addNames decls
-    --filterBody e@(MiniLet{decl}) names = --probably needed
+    --filterBody e@(MiniLet{decl}) names = --probably needed, try it when writing tests
     --filterBody e@(Assign{}) = --maybe needed
+    filterBody e@(Match{}) names = putChildren (mapFilterBody (getChildren e) extNames) e
+      where
+        extNames = names ++ (extractMatchClauseNames e)
+    filterBody e@(FieldAccess{}) _ = e
     filterBody e@(VarAccess{qname}) names
       | isAtomicVar (qnlocal qname) names = setType (atomicVarType $ getType e) $ e
       | otherwise = e
@@ -112,6 +117,14 @@ atomicPerformClosure = extend performClosure
       where
         filterExpr (decls', expr') = (decls', filterBody expr' names)
 
+    extractMatchClauseNames :: Expr -> [Name]
+    extractMatchClauseNames (Match{clauses = []}) = []
+    extractMatchClauseNames e@(Match{clauses = (clause:clauses)}) =
+      (extractJustVar (mcpattern clause)) ++ (extractMatchClauseNames e{clauses = clauses})
+      where
+        extractJustVar (MaybeValue{mdt = JustData{e}}) = varAccessName e
+        extractJustVar _ = []
+
     extractName :: [VarDecl] -> [Name]
     extractName [] = []
     extractName (decl:decls) = (varName decl):(extractName decls)
@@ -126,7 +139,7 @@ atomicPerformClosure = extend performClosure
       | matchName name decl = False
       | otherwise = isAtomicVar name decls
       where
-        matchName (Name l) (Name r) = trace (show l) $ l == r
+        matchName (Name l) (Name r) = l == r
 
 bestowExpression :: Expr -> Expr
 bestowExpression = extend bestowTranslate

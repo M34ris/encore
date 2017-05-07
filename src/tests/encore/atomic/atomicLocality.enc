@@ -3,26 +3,22 @@ end
 
 local class Bar
   var i : int
+
+  def dummy() : Bar
+    new Bar()
+  end
 end
 
 active class Main
-  var i : int
-
   def main() : unit
     var bar = new Bar()
-    this.i = 0
     bar.i = 0
     var x = 0
-    println(this.i)
-    println(bar.i)
-    println(x)
     atomic new Foo() as foo in
-      this.i = 1
-      bar.i = 1
-      x = 1
+      var y = x
+      println(y)
+      y += 1
     end
-    println(this.i)
-    println(bar.i)
     println(x)
   end
 end
