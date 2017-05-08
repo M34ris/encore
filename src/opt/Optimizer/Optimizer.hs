@@ -37,7 +37,7 @@ optimizerPasses = [constantFolding, sugarPrintedStrings, tupleMaybeIdComparison,
 atomicPerformClosure :: Expr -> Expr
 atomicPerformClosure = extend performClosure
   where
-    performClosure e@(Atomic{emeta, target, name, body}) = --trace (show awaitPerform)
+    performClosure e@(Atomic{emeta, target, name, body}) = --trace (show body)      
       awaitPerform
       where
         targetTy = getType target
@@ -47,7 +47,7 @@ atomicPerformClosure = extend performClosure
         performTarget = if (isBestowedType targetTy)
                         then bestowOwner
                         else target
-        atomicVars = name:(Name "this"):(Name "_atomic"):(varAccessName target)
+        atomicVars = name:(Name "this"):(Name "_atomic"):[]
 
         awaitPerform = Await{emeta = emeta,
                              val = markAsNotStat perform}
@@ -71,11 +71,13 @@ atomicPerformClosure = extend performClosure
       | isMethodCall val && isAtomicTarget (target val) = filterBody val names
       | isAtomicTarget val = filterBody val names
       | otherwise = e
-    filterBody e@(MethodCall{target = AtomicTarget{emeta, target}, args}) names
+    filterBody e@(MethodCall{target = atom@(AtomicTarget{emeta, target}), args}) names
       | isVarAccess target && isBestow =
           setType (filterFutType $ getType e)$ e{target = bestowObject, args = mapFilterBody args names}
-      | otherwise =
-          setType (getResultType $ getType e) $ e{args = mapFilterBody args names}
+      | otherwise = --trace (show $ setType (getResultType $ getType e) $ e{target = atom{target = filterBody target names},
+                    --                                                      args = mapFilterBody args names}) $
+          setType (getResultType $ getType e) $ e{target = atom{target = filterBody target names},
+                                                  args = mapFilterBody args names}    
       where        
         atomicTy = getType target
         innerTy = getResultType atomicTy
@@ -141,7 +143,8 @@ atomicPerformClosure = extend performClosure
       | matchName name decl = False
       | otherwise = isAtomicVar name decls
       where
-        matchName (Name l) (Name r) = l == r
+        matchName (Name l) (Name r) = --trace ("l: " ++ l ++ ", r: " ++ r) $
+          l == r
 
 bestowExpression :: Expr -> Expr
 bestowExpression = extend bestowTranslate

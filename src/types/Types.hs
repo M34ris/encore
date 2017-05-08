@@ -440,7 +440,7 @@ instance Show InnerType where
         " (" ++ show arrow{modes = []} ++ ")"
     show FutureType{resultType} = "Fut" ++ brackets resultType
     show BestowedType{resultType} = "Bestowed" ++ brackets resultType
-    show AtomicVarType{resultType} = show resultType
+    show AtomicVarType{resultType} = "AtomicVar" ++ brackets resultType
     show ParType{resultType}    = "Par" ++ brackets resultType
     show StreamType{resultType} = "Stream" ++ brackets resultType
     show ArrayType{resultType}  = brackets resultType

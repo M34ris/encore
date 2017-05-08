@@ -1,20 +1,26 @@
 active class Foo : Actor
+  def dummy() : int
+    42
+  end
 end
 
 local class Bar
   var i : int
 
-  def dummy() : Bar
-    new Bar()
+  def dummy() : int
+    42
   end
 end
 
 active class Main
   def main() : unit
     var bar = new Bar()
+    val baz = new Foo()
     bar.i = 0
     var x = 0
     atomic new Foo() as foo in
+      println(bar.dummy())
+      println(get(baz ! dummy()))
       var y = x
       println(y)
       y += 1
