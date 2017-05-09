@@ -1,0 +1,22 @@
+active class Foo : Actor
+  def dummy() : unit
+    println(42)
+  end
+end
+
+local class Bar
+  var i : int
+end
+
+active class Main
+  def main() : unit
+    val foo1 = new Foo()
+    val foo2 = new Foo()
+    atomic foo1 as bar1 in
+      atomic foo2 as bar1 in
+        bar1 ! dummy()
+      end
+      bar1 ! dummy()
+    end
+  end
+end

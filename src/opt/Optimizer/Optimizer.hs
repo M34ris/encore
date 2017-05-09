@@ -37,8 +37,7 @@ optimizerPasses = [constantFolding, sugarPrintedStrings, tupleMaybeIdComparison,
 atomicPerformClosure :: Expr -> Expr
 atomicPerformClosure = extend performClosure
   where
-    performClosure e@(Atomic{emeta, target, name, body}) = --trace (show awaitPerform)
-      awaitPerform
+    performClosure e@(Atomic{emeta, target, name, body}) = awaitPerform
       where
         targetTy = getType target
         resultTy = getType e
@@ -73,11 +72,12 @@ atomicPerformClosure = extend performClosure
       | otherwise = e
     filterBody e@(MethodCall{target = atom@(AtomicTarget{emeta, target}), args}) names
       | isVarAccess target && isBestow =
-          setType (filterFutType $ getType e)$ e{target = bestowObject, args = mapFilterBody args names}
+          setType (filterFutType exprTy) $ e{target = bestowObject, args = mapFilterBody args names}
       | otherwise =
-          setType (getResultType $ getType e) $ e{target = atom{target = filterBody target names},
-                                                  args = mapFilterBody args names}    
-      where        
+          setType (filterFutType exprTy) $ e{target = atom{target = filterBody target names},
+                                             args = mapFilterBody args names}
+      where
+        exprTy = getType e
         atomicTy = getType target
         innerTy = getResultType atomicTy
         isBestow = isBestowedType atomicTy
@@ -101,11 +101,10 @@ atomicPerformClosure = extend performClosure
       where
         extNames = names ++ (extractMatchClauseNames e)
     filterBody e@(VarAccess{qname}) names
-      | isAtomicVar (qnlocal qname) names && not isRecursiveAtomic = --trace "1" $
-        setType (atomicVarType exprTy) $ e
+      | isAtomicVar (qnlocal qname) names &&
+        not isRecursiveAtomic = setType (atomicVarType exprTy) $ e
       | isRecursiveAtomic = setType (atomicVarRecursive exprTy) e
-      | otherwise = --trace "0" $
-        e
+      | otherwise = e
         where
           exprTy = getType e
           isRecursiveAtomic = isAtomicVarType exprTy
@@ -143,8 +142,7 @@ atomicPerformClosure = extend performClosure
       | matchName name decl = False
       | otherwise = isAtomicVar name decls
       where
-        matchName (Name l) (Name r) = --trace ("l: " ++ l ++ ", r: " ++ r) $
-          l == r
+        matchName (Name l) (Name r) = l == r
 
 bestowExpression :: Expr -> Expr
 bestowExpression = extend bestowTranslate
