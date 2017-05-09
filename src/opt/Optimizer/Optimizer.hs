@@ -37,7 +37,7 @@ optimizerPasses = [constantFolding, sugarPrintedStrings, tupleMaybeIdComparison,
 atomicPerformClosure :: Expr -> Expr
 atomicPerformClosure = extend performClosure
   where
-    performClosure e@(Atomic{emeta, target, name, body}) = --trace (show body)      
+    performClosure e@(Atomic{emeta, target, name, body}) = --trace (show awaitPerform)
       awaitPerform
       where
         targetTy = getType target
@@ -74,8 +74,7 @@ atomicPerformClosure = extend performClosure
     filterBody e@(MethodCall{target = atom@(AtomicTarget{emeta, target}), args}) names
       | isVarAccess target && isBestow =
           setType (filterFutType $ getType e)$ e{target = bestowObject, args = mapFilterBody args names}
-      | otherwise = --trace (show $ setType (getResultType $ getType e) $ e{target = atom{target = filterBody target names},
-                    --                                                      args = mapFilterBody args names}) $
+      | otherwise =
           setType (getResultType $ getType e) $ e{target = atom{target = filterBody target names},
                                                   args = mapFilterBody args names}    
       where        
@@ -98,17 +97,18 @@ atomicPerformClosure = extend performClosure
         addNames :: [([VarDecl], Expr)] -> [Name]
         addNames [] = []
         addNames (decl:decls) = (extractName (fst decl)) ++ addNames decls
-    --filterBody e@(MiniLet{decl}) names = --probably needed, try it when writing tests
-    --filterBody e@(Assign{}) = --maybe needed
     filterBody e@(Match{}) names = putChildren (mapFilterBody (getChildren e) extNames) e
       where
         extNames = names ++ (extractMatchClauseNames e)
-    -- filterBody e@(FieldAccess{}) _ = e
     filterBody e@(VarAccess{qname}) names
-      | isAtomicVar (qnlocal qname) names = --trace "1" $
-        setType (atomicVarType $ getType e) $ e
+      | isAtomicVar (qnlocal qname) names && not isRecursiveAtomic = --trace "1" $
+        setType (atomicVarType exprTy) $ e
+      | isRecursiveAtomic = setType (atomicVarRecursive exprTy) e
       | otherwise = --trace "0" $
         e
+        where
+          exprTy = getType e
+          isRecursiveAtomic = isAtomicVarType exprTy
     filterBody e@(AtomicTarget{target}) names = filterBody target names
     filterBody e names = putChildren (mapFilterBody (getChildren e) names) e
 

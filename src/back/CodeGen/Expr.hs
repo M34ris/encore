@@ -1207,7 +1207,8 @@ instance Translatable A.Expr (State Ctx.Context (CCode Lval, CCode Stat)) where
           name = ID.qName $ Ty.getId ty
       assignVar :: (UsableAs e Expr) => CCode Name -> CCode e -> Ty.Type -> CCode Stat      
       assignVar lhs rhs ty
-        | Ty.isAtomicVarType ty = Assign ((Deref envName) `Dot` lhs) (Amp rhs)
+        | Ty.isAtomicVarType ty && -- = Assign ((Deref envName) `Dot` lhs) (Amp rhs)
+          not (Ty.isAtomicVarRecursive ty) = Assign ((Deref envName) `Dot` lhs) (Amp rhs)
         | otherwise = Assign ((Deref envName) `Dot` lhs) rhs
       localTypeVar ty = do
         c <- get

@@ -61,6 +61,7 @@ translateClosure closure typeVars table
            ctx = Ctx.setClsCtx (Ctx.new subst table) closure
            ((bodyName, bodyStat), _) = runState (translate body) ctx
        in
+         --trace (show $ Util.freeVariables boundVars body) $
          Concat [buildEnvironment envName freeVars fTypeVars,
                  tracefunDecl traceName envName freeVars fTypeVars,
                  Function (Static $ Typ "value_t") funName
@@ -98,8 +99,7 @@ translateClosure closure typeVars table
           where
             translateBinding (name, ty)
               | isAtomicVarType ty = (Ptr (translate ty), AsLval $ fieldName name)
-              -- | False = (Ptr (translate ty), AsLval $ fieldName name)
-              | otherwise = (translate ty, AsLval $ fieldName name) -- (Ptr (translate ty), AsLval $ fieldName name)
+              | otherwise = (translate ty, AsLval $ fieldName name)
             translateTypeVar ty =
               (Ptr ponyTypeT, AsLval $ typeVarRefName ty)
 
@@ -116,7 +116,7 @@ translateClosure closure typeVars table
             in Seq [Assign (Decl (Ptr ponyTypeT, AsLval fName)) $ getVar fName,
                     encoreAssert (AsExpr $ AsLval fName)]
           getVar name =
-              (Deref $ Cast (Ptr $ Struct envName) envVar) `Dot` name -- Deref ((Deref $ Cast (Ptr $ Struct envName) envVar) `Dot` name)
+              (Deref $ Cast (Ptr $ Struct envName) envVar) `Dot` name
 
       tracefunDecl traceName envName members fTypeVars =
         Function (Static void) traceName args body

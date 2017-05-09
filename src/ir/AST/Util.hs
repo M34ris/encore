@@ -28,6 +28,7 @@ import qualified Data.List as List
 import Control.Arrow(first)
 import Prelude hiding (foldr, filter)
 import Control.Monad
+import Debug.Trace
 
 import AST.AST
 import Types
@@ -412,7 +413,8 @@ freeTypeVars :: Expr -> [Type]
 freeTypeVars = List.nub . List.filter isTypeVar . extractExprTypes
 
 freeVariables :: [QualifiedName] -> Expr -> [(QualifiedName, Type)]
-freeVariables bound expr = List.nub $ freeVariables' bound expr
+freeVariables bound expr = trace (show $ freeVariables' bound expr) $
+  List.nubBy (\l r -> (fst l) == (fst r)) $ freeVariables' bound expr
   where
     freeVariables' :: [QualifiedName] -> Expr -> [(QualifiedName, Type)]
     freeVariables' bound Match {arg, clauses} =
