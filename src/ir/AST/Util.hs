@@ -413,7 +413,7 @@ freeTypeVars :: Expr -> [Type]
 freeTypeVars = List.nub . List.filter isTypeVar . extractExprTypes
 
 freeVariables :: [QualifiedName] -> Expr -> [(QualifiedName, Type)]
-freeVariables bound expr = trace (show $ freeVariables' bound expr) $
+freeVariables bound expr =
   List.nubBy (\l r -> (fst l) == (fst r)) $ freeVariables' bound expr
   where
     freeVariables' :: [QualifiedName] -> Expr -> [(QualifiedName, Type)]

@@ -61,7 +61,6 @@ translateClosure closure typeVars table
            ctx = Ctx.setClsCtx (Ctx.new subst table) closure
            ((bodyName, bodyStat), _) = runState (translate body) ctx
        in
-         --trace (show $ Util.freeVariables boundVars body) $
          Concat [buildEnvironment envName freeVars fTypeVars,
                  tracefunDecl traceName envName freeVars fTypeVars,
                  Function (Static $ Typ "value_t") funName
