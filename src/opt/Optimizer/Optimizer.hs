@@ -101,9 +101,7 @@ atomicPerformClosure = extend performClosure
       where
         extNames = names ++ (extractMatchClauseNames e)
     filterBody e@(VarAccess{qname}) names
-      | isAtomicVar (qnlocal qname) names &&
-        not isRecursiveAtomic = setType (atomicVarType exprTy) $ e
-      | isRecursiveAtomic = setType (atomicVarRecursive exprTy) e
+      | isAtomicVar (qnlocal qname) names = setType (atomicVarType exprTy) e
       | otherwise = e
         where
           exprTy = getType e

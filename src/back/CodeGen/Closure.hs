@@ -15,7 +15,7 @@ import CodeGen.DTrace
 import CCode.Main
 import qualified Identifiers as ID
 
-import Data.List (intersect)
+import Data.List (intersect, nubBy)
 
 import qualified AST.AST as A
 import qualified AST.Util as Util
@@ -47,7 +47,8 @@ translateClosure closure typeVars table
            envName     = closureEnvName id
            traceName   = closureTraceName id
            boundVars   = map (ID.qName . show . A.pname) params
-           freeVars    = map (first ID.qnlocal) $
+           freeVars    = nubBy (\l r -> (fst l) == (fst r)) $
+                         map (first ID.qnlocal) $
                          filter (ID.isLocalQName . fst) $
                          Util.freeVariables boundVars body
            fTypeVars   = typeVars `intersect` Util.freeTypeVars body

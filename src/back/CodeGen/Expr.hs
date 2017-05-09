@@ -1169,7 +1169,8 @@ instance Translatable A.Expr (State Ctx.Context (CCode Lval, CCode Stat)) where
     tmp <- Ctx.genSym
     globalFunctionNames <- gets Ctx.getGlobalFunctionNames
     let bound = map (ID.qLocal . A.pname) eparams
-        freeVars = filter (ID.isLocalQName . fst) $
+        freeVars = nubBy (\l r -> (fst l) == (fst r)) $
+                   filter (ID.isLocalQName . fst) $
                    Util.freeVariables bound body
     fillEnv <- insertAllVars freeVars fTypeVars
     return

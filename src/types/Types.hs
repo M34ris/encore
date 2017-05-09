@@ -10,8 +10,6 @@ module Types(
             ,isBestowedType
             ,atomicVarType
             ,isAtomicVarType
-            ,atomicVarRecursive
-            ,isAtomicVarRecursive
             ,parType
             ,isParType
             ,streamType
@@ -311,8 +309,7 @@ data InnerType =
                    }
         | FutureType{resultType :: Type}
         | BestowedType{resultType :: Type}
-        | AtomicVarType{resultType :: Type
-                       ,recursive :: Bool}
+        | AtomicVarType{resultType :: Type}
         | ParType{resultType :: Type}
         | StreamType{resultType :: Type}
         | ArrayType{resultType :: Type}
@@ -873,14 +870,9 @@ bestowedType = typ . BestowedType
 isBestowedType Type{inner = BestowedType {}} = True
 isBestowedType _ = False
 
-atomicVarType ty = typ AtomicVarType{resultType = ty, recursive = False}
+atomicVarType = typ . AtomicVarType
 isAtomicVarType Type{inner = AtomicVarType {}} = True
 isAtomicVarType _ = False
-
-atomicVarRecursive ty@(Type{inner = atom@(AtomicVarType{})}) = ty{inner = atom{recursive = True}}
-atomicVarRecursive _ = error $ "Types.hs: Expected type atomicVarType"
-isAtomicVarRecursive Type{inner = AtomicVarType {recursive}} = recursive
-isAtomicVarRecursive _ = error $ "Types.hs: Expected type atomicVarType"
 
 maybeType = typ . MaybeType
 isMaybeType Type{inner = MaybeType {}} = True

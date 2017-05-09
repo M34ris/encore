@@ -413,8 +413,7 @@ freeTypeVars :: Expr -> [Type]
 freeTypeVars = List.nub . List.filter isTypeVar . extractExprTypes
 
 freeVariables :: [QualifiedName] -> Expr -> [(QualifiedName, Type)]
-freeVariables bound expr =
-  List.nubBy (\l r -> (fst l) == (fst r)) $ freeVariables' bound expr
+freeVariables bound expr = List.nub $ freeVariables' bound expr
   where
     freeVariables' :: [QualifiedName] -> Expr -> [(QualifiedName, Type)]
     freeVariables' bound Match {arg, clauses} =
