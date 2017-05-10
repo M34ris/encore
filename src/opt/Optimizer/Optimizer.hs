@@ -6,6 +6,7 @@ import AST.Util
 import qualified AST.Meta as Meta
 import Types
 import Control.Applicative (liftA2)
+import Debug.Trace
 
 optimizeProgram :: Program -> Program
 optimizeProgram p@(Program{classes, traits, functions}) =
@@ -100,11 +101,8 @@ atomicPerformClosure = extend performClosure
       where
         extNames = names ++ (extractMatchClauseNames e)
     filterBody e@(VarAccess{qname}) names
-      | isAtomicVar (qnlocal qname) names = setType (atomicVarType exprTy) e
+      | isAtomicVar (qnlocal qname) names = setType (atomicVarType $ getType e) e
       | otherwise = e
-        where
-          exprTy = getType e
-          isRecursiveAtomic = isAtomicVarType exprTy
     filterBody e@(AtomicTarget{target}) names = filterBody target names
     filterBody e names = putChildren (mapFilterBody (getChildren e) names) e
 
@@ -136,10 +134,12 @@ atomicPerformClosure = extend performClosure
     isAtomicVar :: Name -> [Name] -> Bool
     isAtomicVar _ [] = True
     isAtomicVar name (decl:decls)
-      | matchName name decl = False
+      | (matchName name decl) || isPrivate name = False
       | otherwise = isAtomicVar name decls
       where
-        matchName (Name l) (Name r) = l == r
+        matchName (Name l) (Name r) = (l == r)
+        isPrivate (Name (x:xs)) = x == '_'
+        isPrivate _ = False
 
 bestowExpression :: Expr -> Expr
 bestowExpression = extend bestowTranslate

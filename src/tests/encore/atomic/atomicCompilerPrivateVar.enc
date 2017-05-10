@@ -1,0 +1,19 @@
+active class Foo : Actor
+  def maybeInt() : Maybe[int]
+    Just(42)
+  end
+end
+
+active class Main
+  def main() : unit
+    val foo  = new Foo()
+    atomic foo as bar in
+      var mbInt = bar ! maybeInt()
+      if mbInt != Nothing then
+        match mbInt with
+          case Just(i) => println(i)
+        end
+      end
+    end
+  end
+end
