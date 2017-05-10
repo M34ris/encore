@@ -11,6 +11,8 @@ import CodeGen.Type
 import qualified CodeGen.Context as Ctx
 import CodeGen.DTrace
 
+import Debug.Trace
+
 import CCode.Main
 import CCode.PrettyCCode
 
@@ -64,6 +66,7 @@ typeToPrintfFstr ty
     | Ty.isUnionType ty        = "(" ++ show ty ++ ")@%p"
     | Ty.isFutureType ty       = "Fut@%p"
     | Ty.isBestowedType ty     = "Bestowed[" ++ (show ty) ++ "]@%p"
+    | Ty.isAtomicVarType ty    = typeToPrintfFstr $ Ty.getResultType ty
     | Ty.isStreamType ty       = "Stream@%p"
     | Ty.isParType ty          = "Par@%p"
     | Ty.isArrowType ty        = "(" ++ show ty ++ ")@%p"
@@ -361,7 +364,10 @@ instance Translatable A.Expr (State Ctx.Context (CCode Lval, CCode Stat)) where
         mkLval (A.VarAccess {A.qname}) =
            do ctx <- get
               case Ctx.substLkp ctx qname of
-                Just substName -> return substName
+                Just substName ->
+                  if (Ty.isAtomicVarType $ A.getType lhs)
+                  then return $ Deref substName
+                  else return substName
                 Nothing -> error $ "Expr.hs: LVal is not assignable: " ++
                                    show qname
         mkLval (A.FieldAccess {A.target, A.name}) =
@@ -411,11 +417,13 @@ instance Translatable A.Expr (State Ctx.Context (CCode Lval, CCode Stat)) where
                             Int index,
                             asEncoreArgT (translate ty) $ AsExpr narg]
 
-  translate (A.VarAccess {A.qname}) = do
+  translate acc@(A.VarAccess {A.qname}) = do
       c <- get
       case Ctx.substLkp c qname of
         Just substName ->
-            return (substName , Skip)
+          if (Ty.isAtomicVarType $ A.getType acc)
+          then return $ (Deref substName , Skip)
+          else return (substName , Skip)
         Nothing -> do
           (_, header) <- gets $ Ctx.lookupFunction qname
           let name = resolveFunctionSource header
@@ -627,7 +635,9 @@ instance Translatable A.Expr (State Ctx.Context (CCode Lval, CCode Stat)) where
               )
           syncAccess = A.isThisAccess target ||
                        A.isAtomicTarget target ||
-                       (Ty.isPassiveRefType . A.getType) target
+                       Ty.isPassiveRefType targetTy ||
+                       ((Ty.isAtomicVarType targetTy) &&
+                        (Ty.isPassiveRefType $ Ty.getResultType targetTy))
           sharedAccess = Ty.isSharedSingleType $ A.getType target
 
   translate call@A.MessageSend{A.emeta, A.target, A.name, A.args, A.typeArguments}
@@ -1178,22 +1188,26 @@ instance Translatable A.Expr (State Ctx.Context (CCode Lval, CCode Stat)) where
           (mapM insertVar vars)
           (filterM localTypeVar typeVars >>= mapM insertTypeVar)
 
-      insertVar (name, _) = do
+      insertVar (name, ty) = do
         c <- get
-
         let tname = fromMaybe (AsLval $ globalClosureName name)
                               (Ctx.substLkp c name)
-        return $ assignVar (fieldName (ID.qnlocal name)) tname
+        return $ assignVar (fieldName (ID.qnlocal name)) tname ty
       insertTypeVar ty = do
         c <- get
         let
           Just tname = Ctx.substLkp c name
           fName = typeVarRefName ty
-        return $ assignVar fName tname
+        return $ assignVar fName tname ty
         where
           name = ID.qName $ Ty.getId ty
-      assignVar :: (UsableAs e Expr) => CCode Name -> CCode e -> CCode Stat
-      assignVar lhs rhs = Assign ((Deref envName) `Dot` lhs) rhs
+      assignVar :: (UsableAs e Expr) => CCode Name -> CCode e -> Ty.Type -> CCode Stat      
+      assignVar lhs rhs ty
+        | Ty.isAtomicVarType ty &&
+          not isRecursive = Assign ((Deref envName) `Dot` lhs) (Amp rhs)
+        | otherwise = Assign ((Deref envName) `Dot` lhs) rhs
+          where
+            isRecursive = isInfixOf "__field" (show rhs)
       localTypeVar ty = do
         c <- get
         return $ isJust $ Ctx.substLkp c name

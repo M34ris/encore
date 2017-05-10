@@ -6,6 +6,7 @@ import AST.Util
 import qualified AST.Meta as Meta
 import Types
 import Control.Applicative (liftA2)
+import Debug.Trace
 
 optimizeProgram :: Program -> Program
 optimizeProgram p@(Program{classes, traits, functions}) =
@@ -38,13 +39,14 @@ atomicPerformClosure = extend performClosure
   where
     performClosure e@(Atomic{emeta, target, name, body}) = awaitPerform
       where
-        targetTy = getType target        
+        targetTy = getType target
         resultTy = getType e
         exprTy = futureType resultTy
         bestowTarget = setType (bestowObjectType (getResultType targetTy)) $ target
         performTarget = if (isBestowedType targetTy)
                         then bestowOwner
-                        else target          
+                        else target
+        atomicVars = name:(Name "this"):(Name "_atomic"):[]
 
         awaitPerform = Await{emeta = emeta,
                              val = markAsNotStat perform}
@@ -58,22 +60,24 @@ atomicPerformClosure = extend performClosure
                   Closure{emeta = emeta,
                           eparams = [],
                           mty = Just targetTy,
-                          body = filterBody body}
+                          body = filterBody body atomicVars}
         bestowOwner = setType actorObjectType $
                       FieldAccess{emeta = emeta, target = bestowTarget, name = Name "owner"}
     performClosure e = e
 
-    filterBody :: Expr -> Expr
-    filterBody e@(Get{val})
-      | isMethodCall val && isAtomicTarget (target val) = filterBody val
-      | isAtomicTarget val = filterBody val
+    filterBody :: Expr -> [Name] -> Expr
+    filterBody e@(Get{val}) names
+      | isMethodCall val && isAtomicTarget (target val) = filterBody val names
+      | isAtomicTarget val = filterBody val names
       | otherwise = e
-    filterBody e@(MethodCall{target = AtomicTarget{emeta, target}, args})
+    filterBody e@(MethodCall{target = atom@(AtomicTarget{emeta, target}), args}) names
       | isVarAccess target && isBestow =
-          setType (filterFutType $ getType e)$ e{target = bestowObject, args = map filterBody args}
+          setType (filterFutType exprTy) $ e{target = bestowObject, args = mapFilterBody args names}
       | otherwise =
-          setType (getResultType $ getType e) $ e{args = map filterBody args}
-      where        
+          setType (filterFutType exprTy) $ e{target = atom{target = filterBody target names},
+                                             args = mapFilterBody args names}
+      where
+        exprTy = getType e
         atomicTy = getType target
         innerTy = getResultType atomicTy
         isBestow = isBestowedType atomicTy
@@ -85,8 +89,57 @@ atomicPerformClosure = extend performClosure
         filterFutType ty
           | isFutureType ty = getResultType ty
           | otherwise = ty
-    filterBody e@(AtomicTarget{target}) = filterBody target
-    filterBody e = putChildren (map filterBody (getChildren e)) e
+    filterBody e@(Let{decls, body}) names =
+      e{decls = mapAtomicDecl decls names, body = filterBody body extNames}
+      where
+        extNames = names ++ (addNames decls)
+
+        addNames :: [([VarDecl], Expr)] -> [Name]
+        addNames [] = []
+        addNames (decl:decls) = (extractName (fst decl)) ++ addNames decls
+    filterBody e@(Match{}) names = putChildren (mapFilterBody (getChildren e) extNames) e
+      where
+        extNames = names ++ (extractMatchClauseNames e)
+    filterBody e@(VarAccess{qname}) names
+      | isAtomicVar (qnlocal qname) names = setType (atomicVarType $ getType e) e
+      | otherwise = e
+    filterBody e@(AtomicTarget{target}) names = filterBody target names
+    filterBody e names = putChildren (mapFilterBody (getChildren e) names) e
+
+    mapFilterBody :: [Expr] -> [Name] -> [Expr]
+    mapFilterBody [] _ = []
+    mapFilterBody (x:xs) names = (filterBody x names):(mapFilterBody xs names)
+
+    mapAtomicDecl :: [([VarDecl], Expr)] -> [Name] -> [([VarDecl], Expr)]
+    mapAtomicDecl decls names = map filterExpr decls
+      where
+        filterExpr (decls', expr') = (decls', filterBody expr' names)
+
+    extractMatchClauseNames :: Expr -> [Name]
+    extractMatchClauseNames (Match{clauses = []}) = []
+    extractMatchClauseNames e@(Match{clauses = (clause:clauses)}) =
+      (extractJustVar (mcpattern clause)) ++ (extractMatchClauseNames e{clauses = clauses})
+      where
+        extractJustVar (MaybeValue{mdt = JustData{e}}) = varAccessName e
+        extractJustVar _ = []
+
+    extractName :: [VarDecl] -> [Name]
+    extractName [] = []
+    extractName (decl:decls) = (varName decl):(extractName decls)
+
+    varAccessName :: Expr -> [Name]
+    varAccessName VarAccess{qname} = [qnlocal qname]
+    varAccessName _ = []
+
+    isAtomicVar :: Name -> [Name] -> Bool
+    isAtomicVar _ [] = True
+    isAtomicVar name (decl:decls)
+      | (matchName name decl) || isPrivate name = False
+      | otherwise = isAtomicVar name decls
+      where
+        matchName (Name l) (Name r) = (l == r)
+        isPrivate (Name (x:xs)) = x == '_'
+        isPrivate _ = False
 
 bestowExpression :: Expr -> Expr
 bestowExpression = extend bestowTranslate

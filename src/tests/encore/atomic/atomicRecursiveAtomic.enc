@@ -1,0 +1,27 @@
+active class Foo : Actor
+end
+
+local class Bar
+  var i : int
+end
+
+active class Main
+  def main() : unit
+    var bar = new Bar()
+    val foo1 = new Foo()
+    val foo2 = new Foo()
+    val foo3 = new Foo()
+    var baz = 0
+    bar.i = 0
+    atomic foo1 as bar1 in
+      atomic foo2 as bar2 in
+        atomic foo3 as bar3 in
+          bar.i = 1
+          baz += 1
+        end
+      end
+    end
+    println(bar.i)
+    println(baz)
+  end
+end
