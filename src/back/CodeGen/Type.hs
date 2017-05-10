@@ -8,8 +8,6 @@ module CodeGen.Type where
 import CodeGen.Typeclasses
 import CodeGen.CCodeNames
 
-import Debug.Trace
-
 import CCode.Main
 import CCode.PrettyCCode ()
 

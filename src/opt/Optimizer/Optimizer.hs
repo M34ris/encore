@@ -6,7 +6,6 @@ import AST.Util
 import qualified AST.Meta as Meta
 import Types
 import Control.Applicative (liftA2)
-import Debug.Trace
 
 optimizeProgram :: Program -> Program
 optimizeProgram p@(Program{classes, traits, functions}) =

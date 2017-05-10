@@ -28,7 +28,6 @@ import qualified Data.List as List
 import Control.Arrow(first)
 import Prelude hiding (foldr, filter)
 import Control.Monad
-import Debug.Trace
 
 import AST.AST
 import Types

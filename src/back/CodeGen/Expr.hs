@@ -11,8 +11,6 @@ import CodeGen.Type
 import qualified CodeGen.Context as Ctx
 import CodeGen.DTrace
 
-import Debug.Trace
-
 import CCode.Main
 import CCode.PrettyCCode
 
@@ -487,11 +485,6 @@ instance Translatable A.Expr (State Ctx.Context (CCode Lval, CCode Stat)) where
   translate acc@(A.FieldAccess {A.target, A.name}) = do
     (ntarg,ttarg) <- translate target
     tmp <- Ctx.genNamedSym "fieldacc"
-    -- let extTy = A.getType target
-    --     targetTy = if Ty.isAtomicVarType extTy
-    --                then Ty.getResultType extTy
-    --                else extTy
-    -- fld <- gets $ Ctx.lookupField targetTy name
     fld <- gets $ Ctx.lookupField (A.getType target) name
     let theAccess = if Ty.isTypeVar (A.ftype fld) then
                         fromEncoreArgT (translate . A.getType $ acc) $
@@ -641,7 +634,8 @@ instance Translatable A.Expr (State Ctx.Context (CCode Lval, CCode Stat)) where
           syncAccess = A.isThisAccess target ||
                        A.isAtomicTarget target ||
                        Ty.isPassiveRefType targetTy ||
-                       ((Ty.isAtomicVarType targetTy) && (Ty.isPassiveRefType $ Ty.getResultType targetTy))
+                       ((Ty.isAtomicVarType targetTy) &&
+                        (Ty.isPassiveRefType $ Ty.getResultType targetTy))
           sharedAccess = Ty.isSharedSingleType $ A.getType target
 
   translate call@A.MessageSend{A.emeta, A.target, A.name, A.args, A.typeArguments}
