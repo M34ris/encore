@@ -71,7 +71,7 @@ atomicPerformClosure = extend performClosure
       | isAtomicTarget val = filterBody val names
       | otherwise = e
     filterBody e@(MethodCall{target = atom@(AtomicTarget{emeta, target}), args}) names
-      | isVarAccess target && isBestow =
+      | isVarAccess target && isBestowedType atomicTy =
           setType (filterFutType exprTy) $ e{target = bestowObject, args = mapFilterBody args names}
       | otherwise =
           setType (filterFutType exprTy) $ e{target = atom{target = filterBody target names},
@@ -80,23 +80,21 @@ atomicPerformClosure = extend performClosure
         exprTy = getType e
         atomicTy = getType target
         innerTy = getResultType atomicTy
-        isBestow = isBestowedType atomicTy
         bestowTarget = setType (bestowObjectType innerTy) $ target
         bestowObject = setType innerTy $
                        FieldAccess{emeta = emeta, target = bestowTarget, name = Name "object"}
 
-        filterFutType :: Type -> Type
         filterFutType ty
           | isFutureType ty = getResultType ty
           | otherwise = ty
     filterBody e@(Let{decls, body}) names =
-      e{decls = mapAtomicDecl decls names, body = filterBody body extNames}
+      e{decls = atomicDecls, body = filterBody body extNames}
       where
+        atomicDecls = map (\(decls', expr') -> (decls', filterBody expr' names)) decls
         extNames = names ++ (addNames decls)
 
-        addNames :: [([VarDecl], Expr)] -> [Name]
         addNames [] = []
-        addNames (decl:decls) = (extractName (fst decl)) ++ addNames decls
+        addNames (decl:decls) = (map varName (fst decl)) ++ addNames decls
     filterBody e@(Match{}) names = putChildren (mapFilterBody (getChildren e) extNames) e
       where
         extNames = names ++ (extractMatchClauseNames e)
@@ -107,13 +105,7 @@ atomicPerformClosure = extend performClosure
     filterBody e names = putChildren (mapFilterBody (getChildren e) names) e
 
     mapFilterBody :: [Expr] -> [Name] -> [Expr]
-    mapFilterBody [] _ = []
-    mapFilterBody (x:xs) names = (filterBody x names):(mapFilterBody xs names)
-
-    mapAtomicDecl :: [([VarDecl], Expr)] -> [Name] -> [([VarDecl], Expr)]
-    mapAtomicDecl decls names = map filterExpr decls
-      where
-        filterExpr (decls', expr') = (decls', filterBody expr' names)
+    mapFilterBody expr names = map (`filterBody` names) expr
 
     extractMatchClauseNames :: Expr -> [Name]
     extractMatchClauseNames (Match{clauses = []}) = []
@@ -123,13 +115,8 @@ atomicPerformClosure = extend performClosure
         extractJustVar (MaybeValue{mdt = JustData{e}}) = varAccessName e
         extractJustVar _ = []
 
-    extractName :: [VarDecl] -> [Name]
-    extractName [] = []
-    extractName (decl:decls) = (varName decl):(extractName decls)
-
-    varAccessName :: Expr -> [Name]
-    varAccessName VarAccess{qname} = [qnlocal qname]
-    varAccessName _ = []
+        varAccessName VarAccess{qname} = [qnlocal qname]
+        varAccessName _ = []
 
     isAtomicVar :: Name -> [Name] -> Bool
     isAtomicVar _ [] = True
