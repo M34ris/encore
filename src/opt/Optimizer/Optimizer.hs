@@ -37,32 +37,26 @@ optimizerPasses = [constantFolding, sugarPrintedStrings, tupleMaybeIdComparison,
 atomicPerformClosure :: Expr -> Expr
 atomicPerformClosure = extend performClosure
   where
-    performClosure e@(Atomic{emeta, target, name, body}) = awaitPerform
+    performClosure e@(Atomic{emeta, target, name, body}) =
+      Await{emeta = emeta,val = markAsNotStat perform}
       where
         targetTy = getType target
         resultTy = getType e
         exprTy = futureType resultTy
-        bestowTarget = setType (bestowObjectType (getResultType targetTy)) $ target
+        atomicVars = name:(Name "this"):(Name "_atomic"):[]
         performTarget = if (isBestowedType targetTy)
                         then bestowOwner
                         else target
-        atomicVars = name:(Name "this"):(Name "_atomic"):[]
 
-        awaitPerform = Await{emeta = emeta,
-                             val = markAsNotStat perform}
         perform = setType exprTy $
-                  MessageSend{emeta = emeta,
-                              target = performTarget,
-                              name = Name "perform",
-                              args = [closure],
-                              typeArguments = [resultTy]}
+                  MessageSend{emeta = emeta, args = [closure], typeArguments = [resultTy],
+                              target = performTarget, name = Name "perform"}
         closure = setType (arrowType [] resultTy) $
-                  Closure{emeta = emeta,
-                          eparams = [],
-                          mty = Just targetTy,
+                  Closure{emeta = emeta, eparams = [], mty = Just targetTy,
                           body = filterBody body atomicVars}
-        bestowOwner = setType actorObjectType $
-                      FieldAccess{emeta = emeta, target = bestowTarget, name = Name "owner"}
+        bestowTarget = setType (bestowObjectType (getResultType targetTy)) $ target
+        bestowOwner  = setType actorObjectType $
+                       FieldAccess{emeta = emeta, target = bestowTarget, name = Name "owner"}
     performClosure e = e
 
     filterBody :: Expr -> [Name] -> Expr
@@ -77,15 +71,12 @@ atomicPerformClosure = extend performClosure
           setType (filterFutType exprTy) $ e{target = atom{target = filterBody target names},
                                              args = mapFilterBody args names}
       where
-        exprTy = getType e
         atomicTy = getType target
-        innerTy = getResultType atomicTy
+        innerTy  = getResultType atomicTy
+        exprTy   = getType e
         bestowTarget = setType (bestowObjectType innerTy) $ target
-        bestowObject = setType innerTy $ FieldAccess{emeta = emeta, target = bestowTarget, name = Name "object"}
-
-        filterFutType ty
-          | isFutureType ty = getResultType ty
-          | otherwise = ty
+        bestowObject = setType innerTy $
+                       FieldAccess{emeta = emeta, target = bestowTarget, name = Name "object"}
     filterBody e@(VarAccess{qname}) names
       | isAtomicVar (qnlocal qname) names = setType (atomicVarType $ getType e) e
       | otherwise = e
@@ -110,12 +101,16 @@ atomicPerformClosure = extend performClosure
     isAtomicVar :: Name -> [Name] -> Bool
     isAtomicVar _ [] = True
     isAtomicVar name (decl:decls)
-      | (matchName name decl) || isPrivate name = False
+      | name == decl || isPrivate name = False
       | otherwise = isAtomicVar name decls
       where
-        matchName (Name l) (Name r) = (l == r)
         isPrivate (Name (x:xs)) = x == '_'
         isPrivate _ = False
+
+    filterFutType :: Type -> Type
+    filterFutType ty
+      | isFutureType ty = getResultType ty
+      | otherwise = ty
 
 bestowExpression :: Expr -> Expr
 bestowExpression = extend bestowTranslate
