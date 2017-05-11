@@ -323,6 +323,9 @@ desugar atomic@Atomic{emeta, target, name, body}
     varAccessName VarAccess{qname} = [qnlocal qname]
     varAccessName _ = []
 
+    -- Map message sends on atomic targets to method calls and wrap the target in an
+    -- AtomicTarget AST node. Atomic targets is expressions refering to the target actor
+    -- of the atomic block.
     buildAtomicBody :: Expr -> [Name] -> Expr
     buildAtomicBody e@(MessageSend{emeta, typeArguments, target, name, args}) names
       | not $ isAtomicRef target names = e{args = mapAtomicArgs}
@@ -345,6 +348,8 @@ desugar atomic@Atomic{emeta, target, name, body}
     mapAtomicBody :: [Expr] -> [Name] -> [Expr]
     mapAtomicBody expr names = map (`buildAtomicBody` names) expr
 
+    -- Get names for variables declared inside a let AST node. Which are used to detects
+    -- whether a variable is an atomic target or not.
     mapMatchDecl :: [([VarDecl], Expr)] -> [Name] -> [Name]
     mapMatchDecl decls names = concatMap (`matchDecl` names) decls
       where

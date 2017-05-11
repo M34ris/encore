@@ -38,7 +38,7 @@ atomicPerformClosure :: Expr -> Expr
 atomicPerformClosure = extend performClosure
   where
     performClosure e@(Atomic{emeta, target, name, body}) =
-      Await{emeta = emeta,val = markAsNotStat perform}
+      Await{emeta = emeta, val = markAsNotStat perform}
       where
         targetTy = getType target
         resultTy = getType e
@@ -59,6 +59,8 @@ atomicPerformClosure = extend performClosure
                        FieldAccess{emeta = emeta, target = bestowTarget, name = Name "owner"}
     performClosure e = e
 
+    -- Filter Get and AtomicTarget nodes as well as setting right type for atomic vars.
+    -- Atomic vars are variables that are declared outside of the atomic block and used inside it.
     filterBody :: Expr -> [Name] -> Expr
     filterBody e@(Get{val}) names
       | isMethodCall val && isAtomicTarget (target val) = filterBody val names
@@ -88,6 +90,7 @@ atomicPerformClosure = extend performClosure
     mapFilterBody :: [Expr] -> [Name] -> [Expr]
     mapFilterBody expr names = map (`filterBody` names) expr
 
+    -- Get names for variables declared inside an expression.
     getDeclNames :: Expr -> [Name]
     getDeclNames Let{decls} = concatMap ((map varName) . fst) decls
     getDeclNames Match{clauses} = concatMap (extractJustVar . mcpattern) clauses

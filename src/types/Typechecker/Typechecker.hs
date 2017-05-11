@@ -737,8 +737,7 @@ instance Checkable Expr where
               errorInitMethod targetType (name m)
               isActive <- isActiveType targetType
               isShared <- isSharedType targetType
-              isBestow <- return $ isBestowedType targetType -- might not need this
-              unless (isActive || isShared || isBestow) $
+              unless (isActive || isShared) $
                 tcError $ NonSendableTargetError targetType
             | isMethodCall m = do
               when (isRefType targetType) $ do

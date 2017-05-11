@@ -636,8 +636,8 @@ instance Translatable A.Expr (State Ctx.Context (CCode Lval, CCode Stat)) where
           syncAccess = A.isThisAccess target ||
                        A.isAtomicTarget target ||
                        Ty.isPassiveRefType targetTy ||
-                       ((Ty.isAtomicVarType targetTy) &&
-                        (Ty.isPassiveRefType $ Ty.getResultType targetTy))
+                      (Ty.isAtomicVarType targetTy &&
+                      (Ty.isPassiveRefType $ Ty.getResultType targetTy))
           sharedAccess = Ty.isSharedSingleType $ A.getType target
 
   translate call@A.MessageSend{A.emeta, A.target, A.name, A.args, A.typeArguments}
