@@ -6,7 +6,6 @@ import AST.Util
 import qualified AST.Meta as Meta
 import Types
 import Control.Applicative (liftA2)
-import Debug.Trace
 
 optimizeProgram :: Program -> Program
 optimizeProgram p@(Program{classes, traits, functions}) =
@@ -37,109 +36,84 @@ optimizerPasses = [constantFolding, sugarPrintedStrings, tupleMaybeIdComparison,
 atomicPerformClosure :: Expr -> Expr
 atomicPerformClosure = extend performClosure
   where
-    performClosure e@(Atomic{emeta, target, name, body}) = awaitPerform
+    performClosure e@(Atomic{emeta, target, name, body}) =
+      Await{emeta = emeta, val = markAsNotStat perform}
       where
         targetTy = getType target
         resultTy = getType e
         exprTy = futureType resultTy
-        bestowTarget = setType (bestowObjectType (getResultType targetTy)) $ target
+        atomicVars = name:(Name "this"):(Name "_atomic"):[]
         performTarget = if (isBestowedType targetTy)
                         then bestowOwner
                         else target
-        atomicVars = name:(Name "this"):(Name "_atomic"):[]
 
-        awaitPerform = Await{emeta = emeta,
-                             val = markAsNotStat perform}
         perform = setType exprTy $
-                  MessageSend{emeta = emeta,
-                              target = performTarget,
-                              name = Name "perform",
-                              args = [closure],
-                              typeArguments = [resultTy]}
+                  MessageSend{emeta = emeta, args = [closure], typeArguments = [resultTy],
+                              target = performTarget, name = Name "perform"}
         closure = setType (arrowType [] resultTy) $
-                  Closure{emeta = emeta,
-                          eparams = [],
-                          mty = Just targetTy,
+                  Closure{emeta = emeta, eparams = [], mty = Just targetTy,
                           body = filterBody body atomicVars}
-        bestowOwner = setType actorObjectType $
-                      FieldAccess{emeta = emeta, target = bestowTarget, name = Name "owner"}
+        bestowTarget = setType (bestowObjectType (getResultType targetTy)) $ target
+        bestowOwner  = setType actorObjectType $
+                       FieldAccess{emeta = emeta, target = bestowTarget, name = Name "owner"}
     performClosure e = e
 
+    -- Filter Get and AtomicTarget nodes as well as setting AtomicVarType on atomic vars.
+    -- Atomic vars are variables that are declared outside of the atomic block and used inside it.
+    -- These need to be handled differently in the code generation in order to enable mutability.
     filterBody :: Expr -> [Name] -> Expr
     filterBody e@(Get{val}) names
       | isMethodCall val && isAtomicTarget (target val) = filterBody val names
       | isAtomicTarget val = filterBody val names
       | otherwise = e
     filterBody e@(MethodCall{target = atom@(AtomicTarget{emeta, target}), args}) names
-      | isVarAccess target && isBestow =
+      | isVarAccess target && isBestowedType atomicTy =
           setType (filterFutType exprTy) $ e{target = bestowObject, args = mapFilterBody args names}
       | otherwise =
           setType (filterFutType exprTy) $ e{target = atom{target = filterBody target names},
                                              args = mapFilterBody args names}
       where
-        exprTy = getType e
         atomicTy = getType target
-        innerTy = getResultType atomicTy
-        isBestow = isBestowedType atomicTy
+        innerTy  = getResultType atomicTy
+        exprTy   = getType e
         bestowTarget = setType (bestowObjectType innerTy) $ target
         bestowObject = setType innerTy $
                        FieldAccess{emeta = emeta, target = bestowTarget, name = Name "object"}
-
-        filterFutType :: Type -> Type
-        filterFutType ty
-          | isFutureType ty = getResultType ty
-          | otherwise = ty
-    filterBody e@(Let{decls, body}) names =
-      e{decls = mapAtomicDecl decls names, body = filterBody body extNames}
-      where
-        extNames = names ++ (addNames decls)
-
-        addNames :: [([VarDecl], Expr)] -> [Name]
-        addNames [] = []
-        addNames (decl:decls) = (extractName (fst decl)) ++ addNames decls
-    filterBody e@(Match{}) names = putChildren (mapFilterBody (getChildren e) extNames) e
-      where
-        extNames = names ++ (extractMatchClauseNames e)
     filterBody e@(VarAccess{qname}) names
       | isAtomicVar (qnlocal qname) names = setType (atomicVarType $ getType e) e
       | otherwise = e
-    filterBody e@(AtomicTarget{target}) names = filterBody target names
-    filterBody e names = putChildren (mapFilterBody (getChildren e) names) e
+    filterBody AtomicTarget{target} names = filterBody target names
+    filterBody e names = putChildren (mapFilterBody (getChildren e) extNames) e
+      where
+        extNames = names ++ getDeclNames e
 
     mapFilterBody :: [Expr] -> [Name] -> [Expr]
-    mapFilterBody [] _ = []
-    mapFilterBody (x:xs) names = (filterBody x names):(mapFilterBody xs names)
+    mapFilterBody expr names = map (`filterBody` names) expr
 
-    mapAtomicDecl :: [([VarDecl], Expr)] -> [Name] -> [([VarDecl], Expr)]
-    mapAtomicDecl decls names = map filterExpr decls
-      where
-        filterExpr (decls', expr') = (decls', filterBody expr' names)
-
-    extractMatchClauseNames :: Expr -> [Name]
-    extractMatchClauseNames (Match{clauses = []}) = []
-    extractMatchClauseNames e@(Match{clauses = (clause:clauses)}) =
-      (extractJustVar (mcpattern clause)) ++ (extractMatchClauseNames e{clauses = clauses})
+    -- Get names for variables declared inside an expression.
+    getDeclNames :: Expr -> [Name]
+    getDeclNames Let{decls} = concatMap ((map varName) . fst) decls
+    getDeclNames Match{clauses} = concatMap (extractJustVar . mcpattern) clauses
       where
         extractJustVar (MaybeValue{mdt = JustData{e}}) = varAccessName e
         extractJustVar _ = []
-
-    extractName :: [VarDecl] -> [Name]
-    extractName [] = []
-    extractName (decl:decls) = (varName decl):(extractName decls)
-
-    varAccessName :: Expr -> [Name]
-    varAccessName VarAccess{qname} = [qnlocal qname]
-    varAccessName _ = []
+        varAccessName VarAccess{qname} = [qnlocal qname]
+        varAccessName _ = []
+    getDeclNames _ = []
 
     isAtomicVar :: Name -> [Name] -> Bool
     isAtomicVar _ [] = True
     isAtomicVar name (decl:decls)
-      | (matchName name decl) || isPrivate name = False
+      | name == decl || isPrivate name = False
       | otherwise = isAtomicVar name decls
       where
-        matchName (Name l) (Name r) = (l == r)
         isPrivate (Name (x:xs)) = x == '_'
         isPrivate _ = False
+
+    filterFutType :: Type -> Type
+    filterFutType ty
+      | isFutureType ty = getResultType ty
+      | otherwise = ty
 
 bestowExpression :: Expr -> Expr
 bestowExpression = extend bestowTranslate
@@ -147,8 +121,7 @@ bestowExpression = extend bestowTranslate
     bestowTranslate e@(Bestow{emeta, bestowExpr}) = setType (bestowedType bestowTy) $ bestowBox
       where
         bestowTy = getType bestowExpr
-        bestowBox = NewWithInit{emeta = emeta,
-                                ty = bestowObjectType bestowTy,
+        bestowBox = NewWithInit{emeta = emeta, ty = bestowObjectType bestowTy,
                                 args = [bestowExpr, VarAccess{emeta, qname = qName "this"}]}
     bestowTranslate e = e
 
@@ -156,37 +129,30 @@ bestowPerformClosure :: Expr -> Expr
 bestowPerformClosure = extend bestowSend
     where
       bestowSend e@(MessageSend{emeta, target, name, args, typeArguments})
-        | (isBestowedType targetTy) = setType exprTy $ perform
+        | (isBestowedType targetTy) = perform
         | otherwise = e
         where
           targetTy = getType target
           resultTy = getResultType $ getType e
-          innerTy = getResultType targetTy
-          exprTy = if (isStatement e)
-                   then unitType
-                   else futureType resultTy
-          bestowTarget = setType (bestowObjectType innerTy) $ target
+          innerTy  = getResultType targetTy
+          exprTy   = if (isStatement e)
+                     then unitType
+                     else futureType resultTy
 
-          perform = MessageSend{emeta = emeta,
-                                target = bestowOwner,
-                                name = Name "perform",
-                                args = [bestowClosure],
-                                typeArguments = [resultTy]}
-          bestowClosure = setType (arrowType [] resultTy) $
-                          Closure{emeta = emeta,
-                                  eparams = [],
-                                  mty = Just (getType bestowObject),
-                                  body = bestowBody}
-          bestowBody = setType resultTy $
-                       MethodCall{emeta = emeta,
-                                  typeArguments = typeArguments,
-                                  target = bestowObject,
-                                  name = name,
-                                  args = args}
-          bestowObject = setType innerTy $
-                         FieldAccess{emeta = emeta, target = bestowTarget, name = Name "object"}
-          bestowOwner = setType actorObjectType $
-                        FieldAccess{emeta = emeta, target = bestowTarget, name = Name "owner"}
+          eTarget = setType (bestowObjectType innerTy) $ target
+          perform = setType exprTy $
+                    MessageSend{emeta = emeta, target = bstOwn, name = Name "perform",
+                                args = [closure], typeArguments = [resultTy]}
+          closure = setType (arrowType [] resultTy) $
+                    Closure{emeta = emeta, eparams = [], body = bstBody,
+                            mty = Just (getType bstObj)}
+          bstBody = setType resultTy $
+                    MethodCall{emeta = emeta, typeArguments = typeArguments,
+                               target = bstObj, name = name, args = args}
+          bstObj  = setType innerTy $
+                    FieldAccess{emeta = emeta, target = eTarget, name = Name "object"}
+          bstOwn  = setType actorObjectType $
+                    FieldAccess{emeta = emeta, target = eTarget, name = Name "owner"}
       bestowSend e = e
       
 -- Note that this is not intended as a serious optimization, but
