@@ -7,7 +7,6 @@ import AST.PrettyPrinter
 import AST.Util
 import Types
 import Text.Megaparsec
-import Debug.Trace
 
 import qualified Data.List as List
 
@@ -348,7 +347,7 @@ desugar atomic@Atomic{emeta, target, name, body}
     mapAtomicBody :: [Expr] -> [Name] -> [Expr]
     mapAtomicBody expr names = map (`buildAtomicBody` names) expr
 
-    -- Get names for variables declared inside a let AST node. Which are used to detects
+    -- Get names for variables declared inside a let AST node. Which are used to detect
     -- whether a variable is an atomic target or not.
     mapMatchDecl :: [([VarDecl], Expr)] -> [Name] -> [Name]
     mapMatchDecl decls names = concatMap (`matchDecl` names) decls

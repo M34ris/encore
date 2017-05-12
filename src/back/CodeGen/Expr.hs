@@ -11,8 +11,6 @@ import CodeGen.Type
 import qualified CodeGen.Context as Ctx
 import CodeGen.DTrace
 
-import Debug.Trace
-
 import CCode.Main
 import CCode.PrettyCCode
 
@@ -616,26 +614,26 @@ instance Translatable A.Expr (State Ctx.Context (CCode Lval, CCode Stat)) where
                           Ty.showWithKind targetTy ++
                           " at " ++ Meta.showPos (A.getMeta call)
         where
-          sTarget = if A.isAtomicTarget target
-                    then A.getAtomicTarget target
-                    else target
-          targetTy = A.getType sTarget
+          callTarget = if A.isAtomicTarget target
+                       then A.getAtomicTarget target
+                       else target
+          targetTy = A.getType callTarget
           retTy = A.getType call
           delegateUse methodCall sym = do
             result <- Ctx.genNamedSym sym
-            (ntarget, ttarget) <- translate sTarget
+            (ntarget, ttarget) <- translate callTarget
             (initArgs, resultExpr) <-
               methodCall ntarget targetTy name args typeArguments retTy
             return (Var result,
               Seq $
                 ttarget :
-                targetNullCheck ntarget sTarget name emeta "." :
+                targetNullCheck ntarget callTarget name emeta "." :
                 initArgs ++
                 [Assign (Decl (translate retTy, Var result)) resultExpr]
               )
           syncAccess = A.isThisAccess target ||
-                       A.isAtomicTarget target ||
                        Ty.isPassiveRefType targetTy ||
+                       A.isAtomicTarget target ||
                       (Ty.isAtomicVarType targetTy &&
                       (Ty.isPassiveRefType $ Ty.getResultType targetTy))
           sharedAccess = Ty.isSharedSingleType $ A.getType target

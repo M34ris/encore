@@ -6,7 +6,6 @@ import AST.Util
 import qualified AST.Meta as Meta
 import Types
 import Control.Applicative (liftA2)
-import Debug.Trace
 
 optimizeProgram :: Program -> Program
 optimizeProgram p@(Program{classes, traits, functions}) =
@@ -59,8 +58,9 @@ atomicPerformClosure = extend performClosure
                        FieldAccess{emeta = emeta, target = bestowTarget, name = Name "owner"}
     performClosure e = e
 
-    -- Filter Get and AtomicTarget nodes as well as setting right type for atomic vars.
+    -- Filter Get and AtomicTarget nodes as well as setting AtomicVarType on atomic vars.
     -- Atomic vars are variables that are declared outside of the atomic block and used inside it.
+    -- These need to be handled differently in the code generation in order to enable mutability.
     filterBody :: Expr -> [Name] -> Expr
     filterBody e@(Get{val}) names
       | isMethodCall val && isAtomicTarget (target val) = filterBody val names
