@@ -76,8 +76,11 @@ atomicPerformClosure = extend performClosure
         atomicTy = getType target
         innerTy  = getResultType atomicTy
         exprTy   = getType e
+        bestowType   = if isAtomicVar ((qnlocal . qname) target) names
+                       then atomicVarType innerTy
+                       else innerTy
         bestowTarget = setType (bestowObjectType innerTy) $ target
-        bestowObject = setType innerTy $
+        bestowObject = setType bestowType $
                        FieldAccess{emeta = emeta, target = bestowTarget, name = Name "object"}
     filterBody e@(VarAccess{qname}) names
       | isAtomicVar (qnlocal qname) names = setType (atomicVarType $ getType e) e

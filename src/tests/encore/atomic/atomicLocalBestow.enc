@@ -1,0 +1,21 @@
+local class Bar
+  def theAnswer() : unit
+    println(42)
+  end
+end
+
+active class Foo : Actor
+  def bestowBar() : Bestowed[Bar]
+     bestow (new Bar())
+  end
+end
+
+active class Main          
+  def main() : unit
+    val foo = new Foo()
+    val bar = get(foo ! bestowBar())
+    atomic bar as baz in
+      bar ! theAnswer()
+    end
+  end
+end

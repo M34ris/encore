@@ -486,11 +486,12 @@ instance Translatable A.Expr (State Ctx.Context (CCode Lval, CCode Stat)) where
     (ntarg,ttarg) <- translate target
     tmp <- Ctx.genNamedSym "fieldacc"
     fld <- gets $ Ctx.lookupField (A.getType target) name
-    let theAccess = if Ty.isTypeVar (A.ftype fld) then
-                        fromEncoreArgT (translate . A.getType $ acc) $
-                                       AsExpr (Deref ntarg `Dot` fieldName name)
-                    else
-                        Deref ntarg `Dot` fieldName name
+    let theField = if Ty.isAtomicVarType (A.getType acc)
+                   then Deref (Deref ntarg) `Dot` fieldName name
+                   else Deref ntarg `Dot` fieldName name
+        theAccess = if Ty.isTypeVar (A.ftype fld)
+                    then fromEncoreArgT (translate . A.getType $ acc) $ AsExpr theField
+                    else theField
         theAssign = Assign (Decl (translate (A.getType acc), Var tmp)) theAccess
     return (Var tmp, Seq [ttarg
                          ,dtraceFieldAccess ntarg name
@@ -634,8 +635,8 @@ instance Translatable A.Expr (State Ctx.Context (CCode Lval, CCode Stat)) where
           syncAccess = A.isThisAccess target ||
                        Ty.isPassiveRefType targetTy ||
                        A.isAtomicTarget target ||
-                      (Ty.isAtomicVarType targetTy &&
-                      (Ty.isPassiveRefType $ Ty.getResultType targetTy))
+                       (Ty.isAtomicVarType targetTy &&
+                       (Ty.isPassiveRefType $ Ty.getResultType targetTy))
           sharedAccess = Ty.isSharedSingleType $ A.getType target
 
   translate call@A.MessageSend{A.emeta, A.target, A.name, A.args, A.typeArguments}
