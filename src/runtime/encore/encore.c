@@ -443,3 +443,23 @@ void encore_trace_object(pony_ctx_t *ctx, void *p, pony_trace_fn f)
   if (!p) { return; }
   ctx->trace_object(ctx, p, &(pony_type_t){.trace = f}, PONY_TRACE_MUTABLE);
 }
+
+void atomiq_init(pony_ctx_t **cctx, pony_actor_t *a)
+{
+  messageq_t *q = pony_alloc(*cctx, sizeof(messageq_t));
+  ponyint_messageq_init(q);
+  pony_msgp_t *msg = ((pony_msgp_t*) pony_alloc_msg(POOL_INDEX(sizeof(pony_msgp_t)), _ENC__MSG_ATOMIC_START));
+  msg->p = q;
+  pony_sendv(*cctx, a, (pony_msg_t*) msg);
+}
+
+void atomiq_finalize(pony_ctx_t **cctx, pony_actor_t *a)
+{
+  pony_msg_t *msg = (pony_alloc_msg(POOL_INDEX(sizeof(pony_msgp_t)), _ENC__MSG_ATOMIC_START));
+  pony_sendv(*cctx, a, msg);
+}
+
+void atomiq_destroy(messageq_t* q)
+{
+  ponyint_messageq_destroy(q);
+}

@@ -485,6 +485,15 @@ arrayMkFn = Nam "array_mk"
 tupleMkFn :: CCode Name
 tupleMkFn = Nam "tuple_mk"
 
+atomicMkFn :: CCode Name
+atomicMkFn = Nam "atomiq_init"
+
+atomicFinalize :: CCode Name
+atomicFinalize = Nam "atomiq_finalize"
+
+atomicDestroy :: CCode Name
+atomicDestroy = Nam "atomiq_destroy"
+
 closureMkFn :: CCode Name
 closureMkFn = Nam "closure_mk"
 

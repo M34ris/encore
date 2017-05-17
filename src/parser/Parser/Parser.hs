@@ -193,6 +193,7 @@ reservedNames =
     ,"and"
     ,"bool"
     ,"break"
+    ,"atomic"
     ,"borrow"
     ,"borrowed"
     ,"case"
@@ -990,6 +991,7 @@ expr = notFollowedBy nl >>
      <|> continue
      <|> closure
      <|> match
+     <|> atomic
      <|> borrow
      <|> blockedTask
      <|> for
@@ -1373,6 +1375,15 @@ expr = notFollowedBy nl >>
           return $ L.IndentSome Nothing (return . Match emeta arg) matchClause
         atLevel indent $ reserved "end"
         returnWithEnd theMatch
+
+      atomic = blockedConstruct $ do
+        emeta <- buildMeta
+        reserved "atomic"
+        target <- expression
+        reserved "as"
+        name <- Name <$> identifier
+        reserved "in"
+        return $ \body -> Atomic{emeta, target, name, body}
 
       borrow = blockedConstruct $ do
         emeta <- buildMeta

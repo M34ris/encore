@@ -97,12 +97,20 @@ dispatchFunDecl cdecl@(A.Class{A.cname, A.cfields, A.cmethods}) =
                                           [AsExpr encoreCtxVar,
                                            AsExpr $ (Var "msg") `Arrow` (Nam "argc"),
                                            AsExpr $ (Var "msg") `Arrow` (Nam "argv")]]])
+       atomicStart =
+           (Nam "_ENC__MSG_ATOMIC_START,",
+            Assign ((Var "_a") `Arrow` (Nam "read")) $ (Cast (Ptr $ Typ "pony_msgp_t") (Var "_m")) `Arrow` Nam "p")
+       atomicStop =
+           (Nam "_ENC__MSG_ATOMIC_STOP,",
+            Seq $ [Statement $ Call atomicDestroy [AsExpr $ (Var "_a") `Arrow` (Nam "read")],
+                   Assign ((Var "_a") `Arrow` (Nam "read")) $ ((Var "_a") `Arrow` (Nam "write"))])
+
        methodClauses = concatMap methodClause
 
-       methodClause m = (mthdDispatchClause m mArgs) :
-                         if not (A.isStreamMethod m)
-                         then [oneWaySendDispatchClause m mArgs]
-                         else []
+       methodClause m = atomicStart : atomicStop : (mthdDispatchClause m mArgs) :
+                        if not (A.isStreamMethod m)
+                        then [oneWaySendDispatchClause m mArgs]
+                        else []
          where
            mArgs = (A.methodName &&& A.methodParams) m
 

@@ -15,6 +15,7 @@
 #include <platform.h>
 #include <pony.h>
 #include <pony/detail/atomics.h>
+#include "actor/messageq.h"
 
 #define check_receiver(this, op, recv, msg, file)                                   \
   if (!this) {                                                                      \
@@ -70,6 +71,8 @@ typedef enum {
   _ENC__MSG_RESUME_SUSPEND,
   _ENC__MSG_RESUME_AWAIT,
   _ENC__MSG_RUN_CLOSURE,
+  _ENC__MSG_ATOMIC_START,
+  _ENC__MSG_ATOMIC_STOP,
   _ENC__MSG_MAIN,
 } encore_msg_id;
 
@@ -190,5 +193,9 @@ static inline void encore_trace_capability(
     encore_trace_object(ctx, p, ((capability_t*) p)->_enc__self_type->trace);
   }
 }
+
+void atomiq_init(pony_ctx_t **cctx, pony_actor_t *a);
+void atomiq_finalize(pony_ctx_t **cctx, pony_actor_t *a);
+void atomiq_destroy(messageq_t* q);
 
 #endif /* end of include guard: ENCORE_H_6Q243YHL */

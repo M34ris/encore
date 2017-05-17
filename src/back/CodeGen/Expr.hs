@@ -758,6 +758,23 @@ instance Translatable A.Expr (State Ctx.Context (CCode Lval, CCode Stat)) where
                  Seq [AsExpr $ Decl (translate (A.getType ite), Var tmp),
                       If (StatAsExpr ncond tcond) (Statement exportThn) (Statement exportEls)])
 
+  translate (A.Atomic {A.target, A.name, A.body}) =
+      do (_, ttarget) <- translate target
+         (_, tbody)   <- translate body
+         tmp  <- Ctx.genNamedSym "tmp"
+         old  <- Ctx.genNamedSym "old"
+         msgq <- Ctx.genNamedSym "q"
+         let atom = show name
+             atomInit = Seq $ [Assign (Decl (Ptr $ Typ "messageq_t", Var msgq))
+                                      (Statement $ Call atomicMkFn [AsExpr encoreCtxVar, AsExpr (Var atom)]),
+                               Assign (Decl (ponyActorT, Var tmp)) (Deref $ AsExpr (Var atom)),
+                               Assign ((Var tmp) `Dot` (Nam "write")) $ (AsExpr (Var msgq)),
+                               Assign (Var old) (Var atom),
+                               Assign (Var atom) (Var tmp)]
+             atomFnlz = Seq $ [Statement $ Call atomicFinalize [AsExpr encoreCtxVar, AsExpr (Var atom)],
+                               Assign (Var atom) (Var old)]
+         return (unit, Seq [atomInit, Statement tbody, atomFnlz])
+
   translate m@(A.Match {A.arg, A.clauses}) =
       do retTmp <- Ctx.genNamedSym "match"
          (narg, targ) <- translate arg
