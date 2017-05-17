@@ -1,0 +1,34 @@
+local class Box
+  var i : int
+
+  def init(i : int) : unit
+     this.i = i
+     println(this.i)
+  end
+  
+  def increment() : unit
+     this.i += 1
+     println(this.i)
+  end
+end
+
+active class Foo : Actor
+  var box : Box
+
+  def init(i : int) : unit
+     this.box = new Box(i)
+  end
+
+  def bestowBox() : Bestowed[Box]
+     bestow this.box
+  end
+end
+
+active class Main          
+  def main() : unit
+     var foo = new Foo(11)
+     atomic get(foo!bestowBox()) as bar in
+       bar ! increment()
+     end
+  end
+end

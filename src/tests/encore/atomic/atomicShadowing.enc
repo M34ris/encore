@@ -1,0 +1,25 @@
+active class Foo : Actor
+  def foo() : unit
+    println(42)
+  end
+end
+
+active class Bar : Actor
+  def bar() : unit
+    println(42)
+  end
+end
+
+active class Main
+  def main() : unit
+    val foo = new Foo()
+    val bar = new Foo()
+    atomic foo as baz in
+      baz ! foo()
+      atomic bar as baz in
+        baz ! bar()
+      end
+      baz ! foo()
+    end
+  end
+end

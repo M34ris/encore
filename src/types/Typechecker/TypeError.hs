@@ -230,6 +230,9 @@ data Error =
   | MainMethodCallError
   | ConstructorCallError
   | ExpectingOtherTypeError String Type
+  | NonActorTraitError Type
+  | BadBestowTargetError Type
+  | NonActiveBestowError Type
   | NonStreamingContextError Expr
   | UnboundFunctionError QualifiedName
   | NonFunctionTypeError Type
@@ -354,11 +357,15 @@ instance Show Error where
     show (DistinctTypeParametersError ty) =
         printf "Type parameters of '%s' must be distinct" (show ty)
     show (WrongNumberOfMethodArgumentsError name targetType expected actual) =
-        let nameWithKind =
+        let
+            refName = if (isBestowedType targetType)
+                      then refTypeName (getResultType targetType)
+                      else refTypeName targetType
+            nameWithKind =
               (if name == constructorName
                then "Constructor"
                else "Method '" ++ show name ++ "'") ++
-               " in " ++ refTypeName targetType
+               " in " ++ refName
         in printf "%s expects %d %s. Got %d"
            nameWithKind expected (arguments expected) actual
     show (WrongNumberOfFunctionArgumentsError name expected actual) =
@@ -500,6 +507,10 @@ instance Show Error where
     show (ExpectingOtherTypeError something ty) =
         printf "Expected %s but found expression of type '%s'"
                something (show ty)
+    show (BadBestowTargetError ty) =
+        printf "Expected the bestowed target to be of either local or subord type, but found expression of type '%s'" (show ty)
+    show (NonActiveBestowError ty) =
+        printf "Expected bestow to be called from an active object but the object is of type '%s'" (show ty)
     show (NonStreamingContextError e) =
         printf "Cannot have '%s' outside of a streaming method"
                (show $ ppSugared e)
@@ -856,6 +867,8 @@ instance Show Error where
         printf ("Active trait '%s' can only be included together with " ++
                 "other active traits. Found '%s'")
                (showWithoutMode active) (show nonActive)
+    show (NonActorTraitError ty) =
+        printf "Expected the object of type '%s' to have the 'Actor' trait" (show ty)
     show (UnsafeTypeArgumentError formal ty) =
         if isModeless ty then
           -- TODO: Could be more precise (e.g. distinguish between linear/subord)

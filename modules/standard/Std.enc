@@ -11,3 +11,18 @@ end
 read trait Eq[t]
   require def eq(other:t) : bool
 end
+
+active trait Actor
+  def perform[sharable t](f : () -> t) : t
+    f()
+  end
+end
+
+unsafe class Bestow[unsafe obj]
+  val object : obj
+  val owner : Actor
+  def init(object : obj, owner : Actor) : unit
+    this.object = object
+    this.owner = owner
+  end
+end

@@ -1,0 +1,23 @@
+active class Foo : Actor
+end
+
+local class Bar
+  var i : int
+
+  def newBar() : Bar
+    new Bar()
+  end
+end
+
+active class Main
+  def main() : unit
+    var bar = new Bar()
+    bar.i = 0
+    println(bar.i)
+    atomic new Foo() as foo in
+      bar = bar.newBar()
+      bar.i = 1
+    end
+    println(bar.i)
+  end
+end

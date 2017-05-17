@@ -1,0 +1,25 @@
+active class Foo : Actor
+  var i : int
+
+  def init(i : int) : unit
+     this.i = i
+     println(this.i)
+  end
+  
+  def increment() : unit
+     this.i += 1
+     println(this.i)
+  end
+end
+
+active class Main
+  def dummy() : unit
+     println(42)
+  end
+          
+  def main() : unit
+     atomic new Foo(11) as bar in
+       bar ! increment()
+     end
+  end
+end

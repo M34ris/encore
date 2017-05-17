@@ -19,6 +19,9 @@ module AST.Util(
     , markStatsInBody
     , isStatement
     , isForwardMethod
+    , getChildren
+    , putChildren
+    , markAsNotStat
     ) where
 
 import qualified Data.List as List
@@ -69,6 +72,7 @@ getChildren Optional {optTag = QuestionDot e} = [e]
 getChildren Optional {optTag = QuestionBang e} = [e]
 getChildren MethodCall {target, args} = target : args
 getChildren MessageSend {target, args} = target : args
+getChildren Bestow {bestowExpr} = [bestowExpr]
 getChildren ExtractorPattern {arg} = [arg]
 getChildren FunctionCall {args} = args
 getChildren FunctionAsValue {} = []
@@ -96,6 +100,8 @@ getChildren Match {arg, clauses} = arg:getChildrenClauses clauses
 
     getChildrenClause MatchClause {mcpattern, mchandler, mcguard} =
         [mcpattern, mchandler, mcguard]
+getChildren Atomic {target, body} = [target, body]
+getChildren AtomicTarget {target} = [target]
 getChildren Borrow {target, body} = [target, body]
 getChildren Get {val} = [val]
 getChildren Forward {forwardExpr} = [forwardExpr]
@@ -149,6 +155,7 @@ putChildren [body@MethodCall {}] e@(Optional {}) = e{optTag = QuestionDot body}
 putChildren [body@FieldAccess {}] e@(Optional {}) = e{optTag = QuestionDot body}
 putChildren (target : args) e@(MethodCall {}) = e{target = target, args = args}
 putChildren (target : args) e@(MessageSend {}) = e{target = target, args = args}
+putChildren [bestowExpr] e@(Bestow {}) = e{bestowExpr = bestowExpr}
 putChildren [arg] e@(ExtractorPattern {}) = e{arg = arg}
 putChildren args e@(FunctionCall {}) = e{args = args}
 putChildren [par, seqfunc] e@(PartySeq {}) = e{par=par, seqfunc=seqfunc}
@@ -177,6 +184,8 @@ putChildren (arg:clauseList) e@(Match {clauses}) =
                 putClausesChildren rest rClauses
           putClausesChildren _ _ =
               error "Util.hs: Wrong number of children of of match clause"
+putChildren [target, body] e@(Atomic {}) = e{target, body}
+putChildren [target] e@(AtomicTarget {}) = e{target}
 putChildren [target, body] e@(Borrow {}) = e{target, body}
 putChildren [val] e@(Get {}) = e{val = val}
 putChildren [forwardExpr] e@(Forward {}) = e{forwardExpr = forwardExpr}
@@ -226,6 +235,7 @@ putChildren _ e@(Tuple {}) = error "'putChildren l Tuple' expects l to have 1 el
 putChildren _ e@(Optional {}) = error "'putChildren l Option' expects l to have 1 element"
 putChildren _ e@(MethodCall {}) = error "'putChildren l MethodCall' expects l to have at least 1 element"
 putChildren _ e@(MessageSend {}) = error "'putChildren l MessageSend' expects l to have at least 1 element"
+putChildren _ e@(Bestow {}) = error "'putChildren l Bestow' expects l to have 1 element"
 putChildren _ e@(ExtractorPattern {}) = error "'putChildren l ExtractorPattern' expects l to have 1 element"
 putChildren _ e@(FunctionAsValue {}) = error "'putChildren l FunctionAsValue' expects l to have 0 elements"
 putChildren _ e@(PartySeq {}) = error "'putChildren l PartySeq' expects l to have 2 elements"
@@ -243,6 +253,8 @@ putChildren _ e@(DoWhile {}) = error "'putChildren l While' expects l to have 2 
 putChildren _ e@(Repeat {}) = error "'putChildren l Repeat' expects l to have 2 elements"
 putChildren _ e@(For {}) = error "'putChildren l For' expects l to have 3 elements"
 putChildren _ e@(Match {}) = error "'putChildren l Match' expects l to have at least 1 element"
+putChildren _ e@(Atomic {}) = error "'putChildren l Atomic' expects l to have 2 elements"
+putChildren _ e@(AtomicTarget {}) = error "'putChildren l Atomic' expects l to have 1 element"
 putChildren _ e@(Borrow {}) = error "'putChildren l Borrow' expects l to have 2 element"
 putChildren _ e@(Get {}) = error "'putChildren l Get' expects l to have 1 element"
 putChildren _ e@(Forward {}) = error "'putChildren l Forward' expects l to have 1 element"
@@ -400,7 +412,7 @@ freeTypeVars :: Expr -> [Type]
 freeTypeVars = List.nub . List.filter isTypeVar . extractExprTypes
 
 freeVariables :: [QualifiedName] -> Expr -> [(QualifiedName, Type)]
-freeVariables bound expr = List.nub $ freeVariables' bound expr
+freeVariables bound expr = List.nubBy (\l r -> (fst l) == (fst r)) $ freeVariables' bound expr
   where
     freeVariables' :: [QualifiedName] -> Expr -> [(QualifiedName, Type)]
     freeVariables' bound Match {arg, clauses} =
@@ -445,11 +457,14 @@ markStatsInBody ty e
   | isUnitType ty = mark asStat e
   | otherwise     = mark asExpr e
 
-asStat e = setMeta e $ makeStat $ getMeta e
+asStat e = setMeta e $ makeStat (getMeta e) True
 asExpr e = e
 
 isStatement :: Expr -> Bool
 isStatement e = isStat (getMeta e)
+
+markAsNotStat :: Expr -> Expr
+markAsNotStat e = setMeta e $ makeStat (getMeta e) False
 
 markAsStat = mark asStat
 markAsExpr = mark asExpr

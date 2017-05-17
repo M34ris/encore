@@ -742,10 +742,10 @@ instance Checkable Expr where
             | isMethodCall m = do
               when (isRefType targetType) $ do
                 isPassive <- isPassiveType targetType
-                unless (isPassive || isThisAccess (target mcall)) $
+                unless (isPassive || isThisAccess (target mcall) || isAtomicTarget (target mcall)) $
                        tcError BadSyncCallError
               let name' = name m
-              unless (isRefType targetType) $
+              unless (isRefType targetType || isBestowedType targetType) $
                      tcError $ NonCallableTargetError targetType
               errorInitMethod targetType name'
             | otherwise =
@@ -1171,6 +1171,28 @@ instance Checkable Expr where
                           ,mchandler = eHandler
                           ,mcguard = eGuard}
 
+    doTypecheck atomic@(AtomicTarget{target}) = do
+      eTarget <- typecheck target
+      let targetTy = AST.getType eTarget
+      return $ setType targetTy atomic{target = eTarget}
+
+    doTypecheck atomic@(Atomic{emeta, target, name, body}) = do
+      eTarget <- typecheck target
+      let targetTy = AST.getType eTarget
+          decls' = [([VarType {varName = name, varType = AST.getType eTarget}], eTarget)]
+          letExpr =  Let{emeta = emeta, mutability = Val, decls = decls', body = body}
+      eBody <- typecheck letExpr
+      let bodyTy = AST.getType eBody
+          isBestow = Ty.isBestowedType targetTy
+      isActive <- isActiveType targetTy
+      resolved <- resolveType Ty.actorObjectType
+      hasActor <- includesMarkerTrait targetTy resolved
+      unless isActive $
+             pushError eTarget $ ExpectingOtherTypeError "target to be an active object" targetTy
+      unless (hasActor || isBestow) $
+             pushError eTarget $ NonActorTraitError targetTy
+      return $ setType bodyTy atomic{target = eTarget, body = eBody}
+
     doTypecheck borrow@(Borrow{target, name, body}) = do
       eTarget <- typecheck target
       let targetType   = AST.getType eTarget
@@ -1322,6 +1344,26 @@ instance Checkable Expr where
     --    suspend : unit
     doTypecheck suspend@(Suspend {}) =
         return $ setType unitType suspend
+
+    --    f : Bestow T
+    --    ------------------ :: bestow
+    --    bestow f : Bestow T
+    doTypecheck bestow@(Bestow {bestowExpr}) =
+        do eExpr <- typecheck bestowExpr
+           Just (_, thisType) <- findVar $ qLocal thisName
+           let ty = AST.getType eExpr
+           isActive <- isActiveType thisType
+           isLocal  <- isLocalType ty
+           isSubord <- isSubordinateType ty
+           resolved <- resolveType Ty.actorObjectType
+           includesActor <- includesMarkerTrait thisType resolved
+           unless includesActor $
+                     pushError eExpr $ NonActorTraitError thisType
+           unless (isLocal || isSubord) $
+                     pushError eExpr $ BadBestowTargetError ty
+           unless (isActive) $
+                     pushError eExpr $ NonActiveBestowError thisType
+           return $ setType (bestowedType ty) bestow {bestowExpr = eExpr}
 
     --    f : Fut T
     --    ------------------ :: await

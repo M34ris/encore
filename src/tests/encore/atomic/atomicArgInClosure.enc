@@ -1,0 +1,15 @@
+active class Foo : Actor
+end
+
+active class Main
+  def atomicArg(max : int) : unit
+    val foo = new Foo()
+    atomic foo as bar in
+      println(max)
+    end
+  end
+  
+  def main() : unit
+    this.atomicArg(42)
+  end
+end

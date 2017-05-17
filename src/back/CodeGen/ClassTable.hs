@@ -67,7 +67,9 @@ buildFunctionTable p =
       setSourceFile funsource . topLevelQName . functionName $ f
 
 lookupClassEntry :: Type -> ClassTable -> (FieldTable, MethodTable)
-lookupClassEntry ty ctable =
+lookupClassEntry ty ctable
+  | isAtomicVarType ty = lookupClassEntry (getResultType ty) ctable
+  | otherwise =
     let fail = error $ "ClassTable.hs: No entry for " ++ Types.showWithKind ty
     in snd $
        fromMaybe fail $ find ((== getId ty) . getId . fst) ctable

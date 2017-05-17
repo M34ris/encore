@@ -1,0 +1,36 @@
+local class Box
+  var i : int
+
+  def init(i : int) : unit
+     this.i = i
+  end
+
+  def maybeBox() : Maybe[Box]
+    Just(new Box(42))
+  end
+end
+
+active class Foo : Actor
+  var box : Box
+
+  def init(i : int) : unit
+     this.box = new Box(i)
+  end
+
+  def bestowBox() : Bestowed[Box]
+     bestow this.box
+  end
+end
+
+active class Main          
+  def main() : unit
+     var foo = new Foo(11)
+     atomic get(foo ! bestowBox()) as bar in
+       val box = bar ! maybeBox()
+       match box with
+         case Nothing => println("Nothing")
+         case Just(b) => println("Just({})", b.i)
+       end
+     end
+  end
+end

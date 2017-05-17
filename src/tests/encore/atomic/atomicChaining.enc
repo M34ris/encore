@@ -1,0 +1,26 @@
+active class Foo : Actor
+  var i : int
+
+  def init(i : int) : unit
+     this.i = i
+     println(this.i)
+  end
+
+  def getInt() : int
+     this.i
+  end
+
+  def echo(i : int) : int
+     println(i)
+     i
+  end
+end
+
+active class Main          
+  def main() : unit
+     var foo = new Foo(42)
+     atomic foo as bar in
+        bar ! echo(bar ! echo(bar ! echo(bar ! echo(bar ! getInt()))))
+     end
+  end
+end

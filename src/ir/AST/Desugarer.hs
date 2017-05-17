@@ -309,6 +309,57 @@ desugar new@NewWithInit{emeta, ty, args}
     , length args' == 1 = new'
     | otherwise = new
 
+desugar atomic@Atomic{emeta, target, name, body}
+  | isVarAccess target = atomic{target = target, body = atomicBody}
+  | otherwise = Let{emeta = emeta, mutability = Val, body = letExpBody,
+                    decls = [([VarNoType{varName = Name "_atomic"}], target)]}
+  where
+    atomicBody = buildAtomicBody body (name:(varAccessName target))
+    letExpBody = atomic{target = VarAccess{emeta = getMeta target, qname = qName "_atomic"},
+                        body = atomicBody}
+
+    varAccessName :: Expr -> [Name]
+    varAccessName VarAccess{qname} = [qnlocal qname]
+    varAccessName _ = []
+
+    -- Map message sends on atomic targets to method calls and wrap the target in an
+    -- AtomicTarget AST node. Atomic targets is expressions refering to the target actor
+    -- of the atomic block.
+    buildAtomicBody :: Expr -> [Name] -> Expr
+    buildAtomicBody e@(MessageSend{emeta, typeArguments, target, name, args}) names
+      | not $ isAtomicRef target names = e{args = mapAtomicArgs}
+      | otherwise = Get{emeta = emeta, val = methodCall}
+      where
+        mapAtomicArgs = mapAtomicBody args names
+        syncTarget = AtomicTarget{emeta = getMeta target, target = target}
+        methodCall = MethodCall{emeta = emeta, typeArguments = typeArguments,
+                                target = syncTarget, name = name, args = mapAtomicArgs}
+    buildAtomicBody e@(VarAccess{emeta}) names
+      | isAtomicRef e names = AtomicTarget{emeta = emeta, target = e}
+      | otherwise = e
+    buildAtomicBody e@(Let{decls, body}) names =
+      e{decls = map (\(decls', expr') -> (decls', buildAtomicBody expr' names)) decls,
+        body = buildAtomicBody body (mapMatchDecl decls names)}
+    buildAtomicBody e@(MiniLet{decl = (decl', expr)}) names =
+      e{decl = (decl', buildAtomicBody expr names)}
+    buildAtomicBody e names = putChildren (mapAtomicBody (getChildren e) names) e
+
+    mapAtomicBody :: [Expr] -> [Name] -> [Expr]
+    mapAtomicBody expr names = map (`buildAtomicBody` names) expr
+
+    -- Get names for variables declared inside a let AST node. Which are used to detect
+    -- whether a variable is an atomic target or not.
+    mapMatchDecl :: [([VarDecl], Expr)] -> [Name] -> [Name]
+    mapMatchDecl decls names = concatMap (`matchDecl` names) decls
+      where
+        matchDecl (decls, expr) names
+          | isVarAccess expr && isAtomicRef expr names = names ++ map varName decls
+          | otherwise = names
+
+    isAtomicRef :: Expr -> [Name] -> Bool
+    isAtomicRef VarAccess{qname} names = elem (qnlocal qname) names
+    isAtomicRef _ names = False
+
 -- Build String objects from literals
 desugar s@StringLiteral{emeta, stringLit} =
     NewWithInit{emeta

@@ -33,6 +33,8 @@ instance Translatable Ty.Type (CCode Ty) where
         | Ty.isArrowType ty      = closure
         | Ty.isTypeVar ty        = encoreArgT
         | Ty.isFutureType ty     = future
+        | Ty.isBestowedType ty   = translate $ Ty.bestowObjectType (Ty.getResultType ty)
+        | Ty.isAtomicVarType ty  = translate $ Ty.getResultType ty
         | Ty.isStreamType ty     = stream
         | Ty.isArrayType ty      = array
         | Ty.isRangeType ty      = range
@@ -47,15 +49,16 @@ runtimeType ty
     | Ty.isActiveSingleType ty  = AsExpr encoreActive
     | Ty.isClassType ty      = Amp $ runtimeTypeName ty
     | Ty.isFutureType ty ||
-      Ty.isStreamType ty = Amp futureTypeRecName
-    | Ty.isArrowType ty  = Amp closureTypeRecName
-    | Ty.isArrayType ty  = Amp arrayTypeRecName
-    | Ty.isRangeType ty  = Amp rangeTypeRecName
-    | Ty.isParType ty    = Amp partyTypeRecName
-    | Ty.isPrimitive ty  = AsExpr encorePrimitive
-    | Ty.isMaybeType ty  = Amp optionTypeRecName
-    | Ty.isTupleType ty  = Amp tupleTypeRecName
-    | Ty.isTypeVar ty    = AsExpr . AsLval $ typeVarRefName ty
+      Ty.isStreamType ty   = Amp futureTypeRecName
+    | Ty.isBestowedType ty = Amp $ runtimeTypeName (Ty.bestowObjectType (Ty.getResultType ty))
+    | Ty.isArrowType ty    = Amp closureTypeRecName
+    | Ty.isArrayType ty    = Amp arrayTypeRecName
+    | Ty.isRangeType ty    = Amp rangeTypeRecName
+    | Ty.isParType ty      = Amp partyTypeRecName
+    | Ty.isPrimitive ty    = AsExpr encorePrimitive
+    | Ty.isMaybeType ty    = Amp optionTypeRecName
+    | Ty.isTupleType ty    = Amp tupleTypeRecName
+    | Ty.isTypeVar ty      = AsExpr . AsLval $ typeVarRefName ty
     | otherwise = AsExpr encorePrimitive
 
 encoreArgTTag :: CCode Ty -> CCode Name

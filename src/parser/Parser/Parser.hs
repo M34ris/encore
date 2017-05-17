@@ -186,6 +186,7 @@ reservedNames =
     ["EMBED"
     ,"END"
     ,"Fut"
+    ,"Bestowed"
     ,"Maybe"
     ,"Par"
     ,"Stream"
@@ -193,6 +194,7 @@ reservedNames =
     ,"and"
     ,"bool"
     ,"break"
+    ,"atomic"
     ,"borrow"
     ,"borrowed"
     ,"case"
@@ -208,6 +210,7 @@ reservedNames =
     ,"false"
     ,"for"
     ,"fun"
+    ,"bestow"
     ,"forward"
     ,"if"
     ,"import"
@@ -386,11 +389,12 @@ typ = makeExprParser singleType opTable
       range = do
         reserved "Range"
         return rangeType
-      builtin = maybe <|> fut <|> par <|> stream
+      builtin = maybe <|> fut <|> bestow <|> par <|> stream
         where
           builtin' t r = liftM t (reserved r >> brackets typ)
           maybe  = builtin' maybeType "Maybe"
           fut    = builtin' futureType "Fut"
+          bestow = builtin' bestowedType "Bestowed"
           par    = builtin' parType "Par"
           stream = builtin' streamType "Stream"
       refType = do
@@ -990,6 +994,7 @@ expr = notFollowedBy nl >>
      <|> continue
      <|> closure
      <|> match
+     <|> atomic
      <|> borrow
      <|> blockedTask
      <|> for
@@ -1002,6 +1007,7 @@ expr = notFollowedBy nl >>
      <|> unlessIf
      <|> explicitReturn
      <|> forward
+     <|> bestow
      <|> yield
      <|> try isEos
      <|> eos
@@ -1374,6 +1380,15 @@ expr = notFollowedBy nl >>
         atLevel indent $ reserved "end"
         returnWithEnd theMatch
 
+      atomic = blockedConstruct $ do
+        emeta <- buildMeta
+        reserved "atomic"
+        target <- expression
+        reserved "as"
+        name <- Name <$> identifier
+        reserved "in"
+        return $ \body -> Atomic{emeta, target, name, body}
+
       borrow = blockedConstruct $ do
         emeta <- buildMeta
         reserved "borrow"
@@ -1415,6 +1430,12 @@ expr = notFollowedBy nl >>
         reserved "forward"
         forwardExpr <- parens expression
         returnWithEnd Forward{emeta, forwardExpr}
+
+      bestow = do
+        emeta <- buildMeta
+        reserved "bestow"
+        bestowExpr <- expression
+        returnWithEnd Bestow{emeta, bestowExpr}
 
       closure = do
         indent <- L.indentLevel
