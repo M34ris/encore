@@ -491,8 +491,11 @@ atomicMkFn = Nam "atomiq_init"
 atomicFinalize :: CCode Name
 atomicFinalize = Nam "atomiq_finalize"
 
-atomicDestroy :: CCode Name
-atomicDestroy = Nam "atomiq_destroy"
+atomicStart :: CCode Name
+atomicStart = Nam "atomiq_start"
+
+atomicStop :: CCode Name
+atomicStop = Nam "atomiq_stop"
 
 closureMkFn :: CCode Name
 closureMkFn = Nam "closure_mk"

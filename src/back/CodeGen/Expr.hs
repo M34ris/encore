@@ -759,30 +759,20 @@ instance Translatable A.Expr (State Ctx.Context (CCode Lval, CCode Stat)) where
                       If (StatAsExpr ncond tcond) (Statement exportThn) (Statement exportEls)])
 
   translate (A.Atomic {A.target, A.name, A.body}) =
-      do (ntar, ttar) <- translate target
-         (_, tbody)   <- translate body
-         tmp  <- Ctx.genNamedSym "tmp"
-         old  <- Ctx.genNamedSym "old"
-         msgq <- Ctx.genNamedSym "q"
-         atom <- Ctx.genNamedSym $ show name
-         let
-             -- splitBody (Seq (decl:body)) = (decl, body)
-             -- (atom, eBody) = (splitBody . snd) tbody
-             --atom     = (fst . head . snd) tbody
-             --eBody    = (tail . snd) tbody
-             --targetTy = A.getType target
-             --atom = show name
-             eBody = tbody
+      do (_, tbody)   <- translate body
+         new <- Ctx.genNamedSym "new"
+         old <- Ctx.genNamedSym "old"
+         ctx <- get
+         let atom = case Ctx.substLkp ctx (ID.qLocal name) of
+                      Just substName -> substName
+                      Nothing -> error $ "WELP: " ++ (show name)
              targetTy = translate $ A.getType target
-             atomInit = Seq $ [--Assign (Decl (targetTy, Var atom)) (ttar),
-                               Assign (Decl (Ptr void, Var msgq))
-                                      (Statement $ Call atomicMkFn [AsExpr encoreCtxVar, Cast ponyActorT (Var atom)]),
-                               Assign (Decl (targetTy, Var tmp)) (Deref $ AsExpr (Var atom)),
-                               Assign ((Cast ponyActorT (Var tmp)) `Dot` (Nam "write")) $ (AsExpr (Var msgq)),
-                               Assign (Decl (targetTy, Var old)) (Var atom),
-                               Assign (Var atom) (Var tmp)]
-             atomFnlz = Seq $ [Statement $ Call atomicFinalize [AsExpr encoreCtxVar, Cast ponyActorT (Var atom)],
-                               Assign (Var atom) (Var old)]
+             atomInit = Seq $ [Assign (Decl (targetTy, Var new)) (Cast targetTy
+                                      (Call atomicMkFn [AsExpr encoreCtxVar, Cast (Ptr ponyActorT) atom])),
+                               Assign (Decl (targetTy, Var old)) atom,
+                               Assign atom (Var new)]
+             atomFnlz = Seq $ [Statement $ Call atomicFinalize [AsExpr encoreCtxVar, Cast (Ptr ponyActorT) atom],
+                               Assign atom (Var old)]
          return (unit, Seq [atomInit, Statement tbody, atomFnlz])
 
   translate m@(A.Match {A.arg, A.clauses}) =

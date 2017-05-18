@@ -290,6 +290,12 @@ desugar Repeat{emeta, name, times, body} =
                               ,decls = [([VarNoType name], readVar "step")]
                               ,body=body}
 
+desugar atomic@(Atomic{emeta, target, name}) =
+  Let{emeta
+     ,mutability = Val
+     ,decls = [([VarNoType name], target)]
+     ,body = atomic}
+
 desugar Async{emeta, body} =
   FunctionCall {emeta, typeArguments=[], qname, args}
   where

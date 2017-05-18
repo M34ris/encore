@@ -1174,12 +1174,8 @@ instance Checkable Expr where
     doTypecheck atomic@(Atomic{emeta, target, name, body}) = do
       eTarget <- typecheck target
       let targetTy = AST.getType eTarget
-          decls = [([VarType {varName = name, varType = AST.getType eTarget}], eTarget)]
-          letExpr = Let{emeta = emeta, mutability = Val, decls = decls, body = body}
-      eLetExpr <- typecheck letExpr
-      let eBody = extractBody eLetExpr
-          bodyTy = AST.getType eBody
-          extractBody Let{body} = body
+      eBody <- typecheck body
+      let bodyTy = AST.getType eBody
       isActive <- isActiveType targetTy
       unless isActive $
              pushError eTarget $ ExpectingOtherTypeError "target to be an active object" targetTy

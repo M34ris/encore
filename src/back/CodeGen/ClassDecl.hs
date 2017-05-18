@@ -76,9 +76,9 @@ dispatchFunDecl cdecl@(A.Class{A.cname, A.cfields, A.cmethods}) =
            (Switch (Var "_m" `Arrow` Nam "id")
             (
              (if (A.isMainClass cdecl)
-              then ponyMainClause :
+              then msgAtomicStart : msgAtomicStop : ponyMainClause :
                    methodClauses (filter ((/= ID.Name "main") . A.methodName) cmethods)
-              else methodClauses $ cmethods
+              else msgAtomicStart : msgAtomicStop : (methodClauses $ cmethods)
              ))
             (Statement $ Call (Nam "printf") [String "error, got invalid id: %zd", AsExpr $ (Var "_m") `Arrow` (Nam "id")]))]))
      where
@@ -97,17 +97,16 @@ dispatchFunDecl cdecl@(A.Class{A.cname, A.cfields, A.cmethods}) =
                                           [AsExpr encoreCtxVar,
                                            AsExpr $ (Var "msg") `Arrow` (Nam "argc"),
                                            AsExpr $ (Var "msg") `Arrow` (Nam "argv")]]])
-       atomicStart =
+       msgAtomicStart =
            (Nam "_ENC__MSG_ATOMIC_START",
-            Assign ((Var "_a") `Arrow` (Nam "read")) $ (Cast (Ptr $ Typ "pony_msgp_t") (Var "_m")) `Arrow` Nam "p")
-       atomicStop =
+            Statement $ Call atomicStart [AsExpr (Var "_a"), AsExpr (Var "_m")])
+       msgAtomicStop =
            (Nam "_ENC__MSG_ATOMIC_STOP",
-            Seq $ [Statement $ Call atomicDestroy [AsExpr $ (Var "_a") `Arrow` (Nam "read")],
-                   Assign ((Var "_a") `Arrow` (Nam "read")) $ ((Var "_a") `Arrow` (Nam "write"))])
+            Statement $ Call atomicStop [AsExpr (Var "_a")])
 
        methodClauses = concatMap methodClause
 
-       methodClause m = atomicStart : atomicStop : (mthdDispatchClause m mArgs) :
+       methodClause m = (mthdDispatchClause m mArgs) :
                         if not (A.isStreamMethod m)
                         then [oneWaySendDispatchClause m mArgs]
                         else []

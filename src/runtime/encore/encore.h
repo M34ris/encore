@@ -193,8 +193,9 @@ static inline void encore_trace_capability(
   }
 }
 
-void atomiq_init(pony_ctx_t **cctx, pony_actor_t *a);
+void* atomiq_init(pony_ctx_t **cctx, pony_actor_t *a);
 void atomiq_finalize(pony_ctx_t **cctx, pony_actor_t *a);
-void atomiq_destroy(void* q);
+void atomiq_start(pony_actor_t *a, pony_msg_t *m);
+void atomiq_stop(pony_actor_t *a);
 
 #endif /* end of include guard: ENCORE_H_6Q243YHL */
