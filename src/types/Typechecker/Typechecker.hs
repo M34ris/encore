@@ -1176,8 +1176,10 @@ instance Checkable Expr where
       let targetTy = AST.getType eTarget
           decls = [([VarType {varName = name, varType = AST.getType eTarget}], eTarget)]
           letExpr = Let{emeta = emeta, mutability = Val, decls = decls, body = body}
-      eBody <- typecheck letExpr
-      let bodyTy = AST.getType eBody
+      eLetExpr <- typecheck letExpr
+      let eBody = extractBody eLetExpr
+          bodyTy = AST.getType eBody
+          extractBody Let{body} = body
       isActive <- isActiveType targetTy
       unless isActive $
              pushError eTarget $ ExpectingOtherTypeError "target to be an active object" targetTy

@@ -3,6 +3,7 @@
 #include "encore.h"
 #include "closure.h"
 #include "actor/actor.h"
+#include "actor/messageq.h"
 #include "sched/scheduler.h"
 #include "mem/pool.h"
 #include <string.h>
@@ -459,7 +460,7 @@ void atomiq_finalize(pony_ctx_t **cctx, pony_actor_t *a)
   pony_sendv(*cctx, a, msg);
 }
 
-void atomiq_destroy(messageq_t* q)
+void atomiq_destroy(void* q)
 {
-  ponyint_messageq_destroy(q);
+  ponyint_messageq_destroy((messageq_t*) q);
 }

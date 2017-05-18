@@ -15,7 +15,6 @@
 #include <platform.h>
 #include <pony.h>
 #include <pony/detail/atomics.h>
-#include "actor/messageq.h"
 
 #define check_receiver(this, op, recv, msg, file)                                   \
   if (!this) {                                                                      \
@@ -196,6 +195,6 @@ static inline void encore_trace_capability(
 
 void atomiq_init(pony_ctx_t **cctx, pony_actor_t *a);
 void atomiq_finalize(pony_ctx_t **cctx, pony_actor_t *a);
-void atomiq_destroy(messageq_t* q);
+void atomiq_destroy(void* q);
 
 #endif /* end of include guard: ENCORE_H_6Q243YHL */
