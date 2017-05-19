@@ -462,7 +462,7 @@ void* atomiq_init(pony_ctx_t **cctx, pony_actor_t *a)
 
 void atomiq_finalize(pony_ctx_t **cctx, pony_actor_t *a)
 {
-  pony_msg_t *msg = (pony_alloc_msg(POOL_INDEX(sizeof(pony_msgp_t)), _ENC__MSG_ATOMIC_START));
+  pony_msg_t *msg = (pony_alloc_msg(POOL_INDEX(sizeof(pony_msgp_t)), _ENC__MSG_ATOMIC_STOP));
   pony_sendv(*cctx, a, msg);
   // free the memory for the actor.
   // ponyint_actor_destroy(a);
