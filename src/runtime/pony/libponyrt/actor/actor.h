@@ -18,12 +18,18 @@ PONY_EXTERN_C_BEGIN
 #define ACTORMSG_CONF (UINT32_MAX - 2)
 #define ACTORMSG_ACK (UINT32_MAX - 1)
 
+typedef struct messageq_wrapper_t
+{
+  messageq_t q;
+  messageq_t atom;
+  messageq_t *read;
+  void* actor;
+} messageq_wrapper_t;
+
 typedef struct pony_actor_t
 {
   pony_type_t* type;
-  messageq_t q;
-  messageq_t* read;
-  messageq_t* write;
+  messageq_wrapper_t* msgq;
   pony_msg_t* continuation;
   uint8_t flags;
 

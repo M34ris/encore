@@ -197,8 +197,8 @@ bool ponyint_actor_run(pony_ctx_t** ctx, pony_actor_t* actor, size_t batch)
   // If we have been scheduled, the head will not be marked as empty.
   /* pony_msg_t* head = atomic_load_explicit(&actor->q.head, memory_order_relaxed); */
   /* while((msg = ponyint_messageq_pop(&actor->q)) != NULL) */
-  pony_msg_t* head = atomic_load_explicit(&actor->read->head, memory_order_relaxed);
-  while((msg = ponyint_messageq_pop(actor->read)) != NULL)
+  pony_msg_t* head = atomic_load_explicit(&actor->msgq->read->head, memory_order_relaxed);  
+  while((msg = ponyint_messageq_pop(actor->msgq->read)) != NULL)
   {
     if(handle_message(ctx, actor, msg))
     {
@@ -244,7 +244,7 @@ bool ponyint_actor_run(pony_ctx_t** ctx, pony_actor_t* actor, size_t batch)
 
   // Return true (i.e. reschedule immediately) if our queue isn't empty.
   // return !ponyint_messageq_markempty(&actor->q);
-  return !ponyint_messageq_markempty(actor->read);
+  return !ponyint_messageq_markempty(actor->msgq->read);
 }
 
 void ponyint_actor_destroy(pony_actor_t* actor)
@@ -255,19 +255,23 @@ void ponyint_actor_destroy(pony_actor_t* actor)
   // as empty. Otherwise, it may spuriously see that tail and head are not
   // the same and fail to mark the queue as empty, resulting in it getting
   // rescheduled.
-  pony_msg_t* head = atomic_load_explicit(&actor->q.head, memory_order_acquire);
-
+  pony_msg_t* head = atomic_load_explicit(&actor->msgq->q.head, memory_order_acquire);
   while(((uintptr_t)head & (uintptr_t)1) != (uintptr_t)1)
-    head = atomic_load_explicit(&actor->q.head, memory_order_acquire);
+    head = atomic_load_explicit(&actor->msgq->q.head, memory_order_acquire);
+
+  head = atomic_load_explicit(&actor->msgq->atom.head, memory_order_acquire);
+  while(((uintptr_t)head & (uintptr_t)1) != (uintptr_t)1)
+    head = atomic_load_explicit(&actor->msgq->atom.head, memory_order_acquire);
 
 #ifdef USE_VALGRIND
-  ANNOTATE_HAPPENS_AFTER(&actor->q.head);
+  ANNOTATE_HAPPENS_AFTER(&actor->msgq->q.head);
 #endif
 
-  ponyint_messageq_destroy(&actor->q);
+  ponyint_messageq_destroy(&actor->msgq->q);
+  ponyint_messageq_destroy(&actor->msgq->atom);
+  ponyint_pool_free_size(sizeof(messageq_wrapper_t), actor->msgq);
   ponyint_gc_destroy(&actor->gc);
   ponyint_heap_destroy(&actor->heap);
-
   // Free variable sized actors correctly.
   ponyint_pool_free_size(actor->type->size, actor);
 }
@@ -344,11 +348,14 @@ pony_actor_t* pony_create(pony_ctx_t* ctx, pony_type_t* type)
   memset(actor, 0, type->size);
   actor->type = type;
 
-  ponyint_messageq_init(&actor->q);
+  actor->msgq = (messageq_wrapper_t*)ponyint_pool_alloc_size(sizeof(messageq_wrapper_t));
+  ponyint_messageq_init(&actor->msgq->q);
+  ponyint_messageq_init(&actor->msgq->atom);
+  actor->msgq->read = &actor->msgq->q;
+  actor->msgq->actor = NULL;
+
   ponyint_heap_init(&actor->heap);
   ponyint_gc_done(&actor->gc);
-  actor->read = &actor->q;
-  actor->write = &actor->q;
 
   if(actor_noblock)
     ponyint_actor_setsystem(actor);
@@ -392,8 +399,19 @@ void pony_sendv(pony_ctx_t* ctx, pony_actor_t* to, pony_msg_t* m)
 {
   DTRACE2(ACTOR_MSG_SEND, (uintptr_t)ctx->scheduler, m->id);
 
-  // if(ponyint_messageq_push(&to->q, m))
-  if(ponyint_messageq_push(to->write, m))
+  messageq_t *q = &to->msgq->q;
+  pony_actor_t *sender = ctx->current;
+  /* printf("[q] %p   [atom] %p   [read] %p\n", &to->msgq->q, &to->msgq->atom, to->msgq->read); */
+  /* if(&to->msgq->atom == to->msgq->read) { */
+  /*   printf("\t[id] %d\t[enc] %d\n", m->id, _ENC__MSG_ATOMIC_STOP); */
+  /* } */
+  if(sender && sender == to->msgq->actor) {
+    q = &to->msgq->atom;
+  }
+  /* printf("\t[sender] %p\t[actor] %p\n", sender, to->msgq->actor); */
+  /* printf("------------------------------------------------------------------\n"); */
+
+  if(ponyint_messageq_push(q, m))
   {
     if(!has_flag(to, FLAG_UNSCHEDULED))
       ponyint_sched_add(ctx, to);

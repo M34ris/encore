@@ -656,12 +656,10 @@ static void ack(pony_ctx_t* ctx, detector_t* d, size_t token)
     send_conf(ctx, d, per);
 }
 
-static void final(pony_ctx_t* ctx, pony_actor_t* self)
+static void pop_messages(pony_ctx_t* ctx, messageq_t* q)
 {
-  // Find block messages and invoke finalisers for those actors
   pony_msg_t* msg;
-
-  while((msg = ponyint_messageq_pop(&self->q)) != NULL)
+  while((msg = ponyint_messageq_pop(q)) != NULL)
   {
     if(msg->id == ACTORMSG_BLOCK)
     {
@@ -677,6 +675,13 @@ static void final(pony_ctx_t* ctx, pony_actor_t* self)
       }
     }
   }
+}
+
+static void final(pony_ctx_t* ctx, pony_actor_t* self)
+{
+  // Find block messages and invoke finalisers for those actors
+  pop_messages(ctx, &self->msgq->q);
+  pop_messages(ctx, &self->msgq->atom);
 
   detector_t* d = (detector_t*)self;
   size_t i = HASHMAP_BEGIN;

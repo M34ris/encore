@@ -765,14 +765,10 @@ instance Translatable A.Expr (State Ctx.Context (CCode Lval, CCode Stat)) where
          ctx <- get
          let atom = case Ctx.substLkp ctx (ID.qLocal name) of
                       Just substName -> substName
-                      Nothing -> error $ "WELP: " ++ (show name)
+                      Nothing -> error $ "Can't find var: " ++ (show name)
              targetTy = translate $ A.getType target
-             atomInit = Seq $ [Assign (Decl (targetTy, Var new)) (Cast targetTy
-                                      (Call atomicMkFn [AsExpr encoreCtxVar, Cast (Ptr ponyActorT) atom])),
-                               Assign (Decl (targetTy, Var old)) atom,
-                               Assign atom (Var new)]
-             atomFnlz = Seq $ [Statement $ Call atomicFinalize [AsExpr encoreCtxVar, Cast (Ptr ponyActorT) atom],
-                               Assign atom (Var old)]
+             atomInit = Statement $ Call atomicMkFn [AsExpr encoreCtxVar, Cast (Ptr ponyActorT) atom]
+             atomFnlz = Statement $ Call atomicFinalize [AsExpr encoreCtxVar, Cast (Ptr ponyActorT) atom]
          return (unit, Seq [atomInit, Statement tbody, atomFnlz])
 
   translate m@(A.Match {A.arg, A.clauses}) =
