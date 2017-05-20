@@ -6,6 +6,8 @@ module Types(
             ,isArrowType
             ,futureType
             ,isFutureType
+            ,bestowedType
+            ,isBestowedType
             ,parType
             ,isParType
             ,streamType
@@ -26,6 +28,10 @@ module Types(
             ,isClassType
             ,isPassiveClassType
             ,isMainType
+            ,actorObjectType
+            ,isActorObjectType
+            ,bestowObjectType
+            ,isBestowObjectType
             ,stringObjectType
             ,isStringObjectType
             ,conjunctiveType
@@ -301,6 +307,7 @@ data InnerType =
                    ,modes :: [Mode]
                    }
         | FutureType{resultType :: Type}
+        | BestowedType{resultType :: Type}
         | ParType{resultType :: Type}
         | StreamType{resultType :: Type}
         | ArrayType{resultType :: Type}
@@ -357,7 +364,7 @@ getModes ty
   | otherwise = []
 
 hasResultType x
-  | isArrowType x || isFutureType x || isParType x ||
+  | isArrowType x || isFutureType x || isBestowedType x || isParType x ||
     isStreamType x || isArrayType x || isMaybeType x = True
   | otherwise = False
 
@@ -435,6 +442,7 @@ instance Show InnerType where
         unwords (map show modes) ++
         " (" ++ show arrow{modes = []} ++ ")"
     show FutureType{resultType} = "Fut" ++ brackets resultType
+    show BestowedType{resultType} = "Bestowed" ++ brackets resultType
     show ParType{resultType}    = "Par" ++ brackets resultType
     show StreamType{resultType} = "Stream" ++ brackets resultType
     show ArrayType{resultType}  = brackets resultType
@@ -481,6 +489,7 @@ showWithKind ty = kind (inner ty) ++ " " ++ show ty
     kind TypeVar{}                     = "polymorphic type"
     kind ArrowType{}                   = "function type"
     kind FutureType{}                  = "future type"
+    kind BestowedType{}                = "bestowed type"
     kind ParType{}                     = "parallel type"
     kind StreamType{}                  = "stream type"
     kind RangeType{}                   = "range type"
@@ -497,6 +506,7 @@ hasSameKind :: Type -> Type -> Bool
 hasSameKind ty1 ty2
   | areBoth isMaybeType ||
     areBoth isFutureType ||
+    areBoth isBestowedType ||
     areBoth isParType ||
     areBoth isArrayType ||
     areBoth isStreamType = getResultType ty1 `hasSameKind` getResultType ty2
@@ -860,6 +870,10 @@ futureType = typ . FutureType
 isFutureType Type{inner = FutureType {}} = True
 isFutureType _ = False
 
+bestowedType = typ . BestowedType
+isBestowedType Type{inner = BestowedType {}} = True
+isBestowedType _ = False
+
 maybeType = typ . MaybeType
 isMaybeType Type{inner = MaybeType {}} = True
 isMaybeType _ = False
@@ -894,6 +908,18 @@ isTypeVar _ = False
 
 isMainType Type{inner = ClassType{refInfo = RefInfo{refId = "Main"}}} = True
 isMainType _ = False
+
+bestowObjectType ty = setRefSourceFile "Std.enc" $
+                    makeUnsafe $ classType "Bestow" [ty]
+
+isBestowObjectType ty = isClassType ty &&
+                        getId ty == "Bestow"
+
+actorObjectType = setRefSourceFile "Std.enc" $
+                  makeActive $ traitType "Actor" []
+
+isActorObjectType ty = isTraitType ty &&
+                       getId ty == "Actor"
 
 stringObjectType = setRefSourceFile "String.enc" $
                     makeRead $ classType "String" []

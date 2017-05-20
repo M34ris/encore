@@ -1344,6 +1344,27 @@ instance Checkable Expr where
     doTypecheck suspend@(Suspend {}) =
         return $ setType unitType suspend
 
+
+    --    f : Bestow T
+    --    ------------------ :: bestow
+    --    bestow f : Bestow T
+    doTypecheck bestow@(Bestow {bestowExpr}) =
+        do eExpr <- typecheck bestowExpr
+           Just (_, thisType) <- findVar $ qLocal thisName
+           let ty = AST.getType eExpr
+           isActive <- isActiveType thisType
+           isLocal  <- isLocalType ty
+           isSubord <- isSubordinateType ty
+           resolved <- resolveType Ty.actorObjectType
+           includesActor <- includesMarkerTrait thisType resolved
+           unless includesActor $
+                     pushError eExpr $ NonActorTraitError thisType
+           unless (isLocal || isSubord) $
+                     pushError eExpr $ BadBestowTargetError ty
+           unless (isActive) $
+                     pushError eExpr $ NonActiveBestowError thisType
+           return $ setType (bestowedType ty) bestow {bestowExpr = eExpr}
+
     --    f : Fut T
     --    ------------------ :: await
     --    await f : unit
