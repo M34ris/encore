@@ -148,6 +148,46 @@ dropBorrowBlocks = extend dropBorrowBlock
            ,body}
       dropBorrowBlock e = e
 
+bestowExpression :: Expr -> Expr
+bestowExpression = extend bestowTranslate
+  where
+    bestowTranslate e@(Bestow{emeta, bestowExpr}) = setType (bestowedType bestowTy) $ bestowBox
+      where
+        bestowTy = getType bestowExpr
+        bestowBox = NewWithInit{emeta = emeta, ty = bestowObjectType bestowTy,
+                                args = [bestowExpr, VarAccess{emeta, qname = qName "this"}]}
+    bestowTranslate e = e
+
+bestowPerformClosure :: Expr -> Expr
+bestowPerformClosure = extend bestowSend
+    where
+      bestowSend e@(MessageSend{emeta, target, name, args, typeArguments})
+        | (isBestowedType targetTy) = perform
+        | otherwise = e
+        where
+          targetTy = getType target
+          resultTy = getResultType $ getType e
+          innerTy  = getResultType targetTy
+          exprTy   = if (isStatement e)
+                     then unitType
+                     else futureType resultTy
+
+          eTarget = setType (bestowObjectType innerTy) $ target
+          perform = setType exprTy $
+                    MessageSend{emeta = emeta, target = bstOwn, name = Name "perform",
+                                args = [closure], typeArguments = [resultTy]}
+          closure = setType (arrowType [] resultTy) $
+                    Closure{emeta = emeta, eparams = [], body = bstBody,
+                            mty = Just (getType bstObj)}
+          bstBody = setType resultTy $
+                    MethodCall{emeta = emeta, typeArguments = typeArguments,
+                               target = bstObj, name = name, args = args}
+          bstObj  = setType innerTy $
+                    FieldAccess{emeta = emeta, target = eTarget, name = Name "object"}
+          bstOwn  = setType actorObjectType $
+                    FieldAccess{emeta = emeta, target = eTarget, name = Name "owner"}
+      bestowSend e = e
+
 forwardGeneral = extend forwardGeneral'
   where
     forwardGeneral' e@(Forward{forwardExpr=MessageSend{}}) = e

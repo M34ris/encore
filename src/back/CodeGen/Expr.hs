@@ -63,6 +63,7 @@ typeToPrintfFstr ty
     | Ty.isCapabilityType ty   = "(" ++ show ty ++ ")@%p"
     | Ty.isUnionType ty        = "(" ++ show ty ++ ")@%p"
     | Ty.isFutureType ty       = "Fut@%p"
+    | Ty.isBestowedType ty     = "Bestowed[" ++ (show ty) ++ "]@%p"
     | Ty.isStreamType ty       = "Stream@%p"
     | Ty.isParType ty          = "Par@%p"
     | Ty.isArrowType ty        = "(" ++ show ty ++ ")@%p"
