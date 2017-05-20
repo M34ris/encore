@@ -49,7 +49,7 @@ optimizeProgram p@(Program{classes, traits, functions}) =
 -- | The functions in this list will be performed in order during optimization
 optimizerPasses :: [Expr -> Expr]
 optimizerPasses = [constantFolding, sugarPrintedStrings, tupleMaybeIdComparison,
-                   dropBorrowBlocks, forwardGeneral]
+                   dropBorrowBlocks, forwardGeneral, bestowExpression, bestowPerformClosure] 
 
 -- Note that this is not intended as a serious optimization, but
 -- as an example to how an optimization could be made. As soon as
