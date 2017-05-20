@@ -273,6 +273,7 @@ ppExpr MessageSend {target, name, args, typeArguments} =
     maybeParens target <> "!" <> ppName name <>
       withTypeArguments typeArguments <>
       parens (commaSep (map ppExpr args))
+ppExpr Bestow {bestowExpr} = "bestow" <+> (ppExpr bestowExpr)
 ppExpr PartySeq {par, seqfunc} = ppExpr par <+> ">>" <+> parens (ppExpr seqfunc)
 ppExpr PartyPar {parl, parr} = ppExpr parl <+> "|||" <+> ppExpr parr
 ppExpr PartyReduce {seqfun, pinit, par} = "reduce" <>
