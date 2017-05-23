@@ -22,6 +22,7 @@ typedef struct pony_actor_t
 {
   pony_type_t* type;
   messageq_t q;
+  void* atomic;
   messageq_t* read;
   messageq_t* write;
   pony_msg_t* continuation;

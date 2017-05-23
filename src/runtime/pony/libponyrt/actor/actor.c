@@ -349,6 +349,7 @@ pony_actor_t* pony_create(pony_ctx_t* ctx, pony_type_t* type)
   ponyint_gc_done(&actor->gc);
   actor->read = &actor->q;
   actor->write = &actor->q;
+  actor->atomic = NULL;
 
   if(actor_noblock)
     ponyint_actor_setsystem(actor);
@@ -395,8 +396,12 @@ void pony_sendv(pony_ctx_t* ctx, pony_actor_t* to, pony_msg_t* m)
   // if(ponyint_messageq_push(&to->q, m))
   if(ponyint_messageq_push(to->write, m))
   {
-    if(!has_flag(to, FLAG_UNSCHEDULED))
-      ponyint_sched_add(ctx, to);
+    pony_actor_t* target = to;
+    if(to->atomic)
+      target = to->atomic;
+
+    if(!has_flag(target, FLAG_UNSCHEDULED))
+      ponyint_sched_add(ctx, target);
   }
 }
 

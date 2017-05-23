@@ -460,7 +460,8 @@ messageq_wrapper_t* atomiq_init(pony_ctx_t **cctx, pony_actor_t *a)
 void atomiq_setq(encore_actor_t *dest, encore_actor_t *src, messageq_wrapper_t *q)
 {
   memcpy(dest, src, sizeof(encore_actor_t));
-  ((pony_actor_t*) dest)->write = (messageq_t*) q;
+  ((pony_actor_t*) dest)->write  = (messageq_t*) q;
+  ((pony_actor_t*) dest)->atomic = src;
 }
 
 void atomiq_finalize(pony_ctx_t **cctx, pony_actor_t *a)

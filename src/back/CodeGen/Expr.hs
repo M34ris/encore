@@ -762,21 +762,17 @@ instance Translatable A.Expr (State Ctx.Context (CCode Lval, CCode Stat)) where
       do (_, tbody)   <- translate body
          msgq <- Ctx.genNamedSym "q"
          new  <- Ctx.genNamedSym "new"
-         old  <- Ctx.genNamedSym "old"
          ctx  <- get
          let atom = case Ctx.substLkp ctx (ID.qLocal name) of
                       Just substName -> substName
-                      Nothing -> error $ "WELP: " ++ (show name)
+                      Nothing -> error $ "Expr.hs: Could not find variable: " ++ (show name)
              targetTy = translate $ A.getType target
              atomInit = Seq $ [Assign (Decl (Ptr messageqWrapper, Var msgq))
                                       (Call atomicMkFn [AsExpr encoreCtxVar, Cast (Ptr ponyActorT) atom]),
-                               --Assign (Decl (encoreActorT, Var new)) (Deref $ Cast (Ptr encoreActorT) atom),
                                Statement $ Decl (encoreActorT, Var new),
                                Statement $ Call atomicSetq [Amp (Var new), Cast (Ptr encoreActorT) atom, AsExpr $ Var msgq],
-                               Assign (Decl (targetTy, Var old)) atom,
                                Assign atom (Cast targetTy $ Amp (Var new))]
-             atomFnlz = Seq $ [Statement $ Call atomicFinalize [AsExpr encoreCtxVar, Cast (Ptr ponyActorT) atom],
-                               Assign atom (Var old)]
+             atomFnlz = Statement $ Call atomicFinalize [AsExpr encoreCtxVar, Cast (Ptr ponyActorT) atom]
          return (unit, Seq [atomInit, Statement tbody, atomFnlz])
 
   translate m@(A.Match {A.arg, A.clauses}) =
