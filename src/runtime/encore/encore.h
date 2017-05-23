@@ -193,8 +193,25 @@ static inline void encore_trace_capability(
   }
 }
 
-void* atomiq_init(pony_ctx_t **cctx, pony_actor_t *a);
+typedef struct messageq_wrapper_t
+{
+  void* q;
+} messageq_wrapper_t;
+
+typedef struct atomic_oneway_msg_start
+{
+  encore_oneway_msg_t msg;
+  messageq_wrapper_t* q;
+} atomic_oneway_msg_start_t;
+
+typedef struct atomic_oneway_msg_stop
+{
+  encore_oneway_msg_t msg;
+} atomic_oneway_msg_stop_t;
+
+messageq_wrapper_t* atomiq_init(pony_ctx_t **cctx, pony_actor_t *a);
 void atomiq_finalize(pony_ctx_t **cctx, pony_actor_t *a);
+void atomiq_setq(encore_actor_t *dest, encore_actor_t *src, messageq_wrapper_t *q);
 void atomiq_start(pony_actor_t *a, pony_msg_t *m);
 void atomiq_stop(pony_actor_t *a);
 

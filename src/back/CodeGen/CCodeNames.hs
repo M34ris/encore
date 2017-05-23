@@ -485,11 +485,17 @@ arrayMkFn = Nam "array_mk"
 tupleMkFn :: CCode Name
 tupleMkFn = Nam "tuple_mk"
 
+messageqWrapper :: CCode Ty
+messageqWrapper = Typ "messageq_wrapper_t"
+
 atomicMkFn :: CCode Name
 atomicMkFn = Nam "atomiq_init"
 
 atomicFinalize :: CCode Name
 atomicFinalize = Nam "atomiq_finalize"
+
+atomicSetq :: CCode Name
+atomicSetq = Nam "atomiq_setq"
 
 atomicStart :: CCode Name
 atomicStart = Nam "atomiq_start"

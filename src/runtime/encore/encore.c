@@ -445,36 +445,39 @@ void encore_trace_object(pony_ctx_t *ctx, void *p, pony_trace_fn f)
   ctx->trace_object(ctx, p, &(pony_type_t){.trace = f}, PONY_TRACE_MUTABLE);
 }
 
-void* atomiq_init(pony_ctx_t **cctx, pony_actor_t *a)
+messageq_wrapper_t* atomiq_init(pony_ctx_t **cctx, pony_actor_t *a)
 {
+  pony_gc_send((*cctx));
+  pony_send_done((*cctx));
   messageq_t *q = pony_alloc(*cctx, sizeof(messageq_t));
   ponyint_messageq_init(q);
-  pony_msgp_t *msg = ((pony_msgp_t*) pony_alloc_msg(POOL_INDEX(sizeof(pony_msgp_t)), _ENC__MSG_ATOMIC_START));
-  msg->p = q;
+  atomic_oneway_msg_start_t* msg = ((atomic_oneway_msg_start_t*) pony_alloc_msg(POOL_INDEX(sizeof(atomic_oneway_msg_start_t)), _ENC__MSG_ATOMIC_START));
+  msg->q = (messageq_wrapper_t*) q;
   pony_sendv(*cctx, a, (pony_msg_t*) msg);
+  return (messageq_wrapper_t*) q;
+}
 
-  // pony_actor_t tmp = (*a);
-  pony_actor_t *tmp = pony_alloc(*cctx, sizeof(pony_actor_t));
-  (*tmp) = *a;
-  tmp->write = q;
-  return (void*) tmp;
+void atomiq_setq(encore_actor_t *dest, encore_actor_t *src, messageq_wrapper_t *q)
+{
+  memcpy(dest, src, sizeof(encore_actor_t));
+  ((pony_actor_t*) dest)->write = (messageq_t*) q;
 }
 
 void atomiq_finalize(pony_ctx_t **cctx, pony_actor_t *a)
 {
-  pony_msg_t *msg = (pony_alloc_msg(POOL_INDEX(sizeof(pony_msgp_t)), _ENC__MSG_ATOMIC_STOP));
-  pony_sendv(*cctx, a, msg);
-  // free the memory for the actor.
-  // ponyint_actor_destroy(a);
+  pony_gc_send((*cctx));
+  pony_send_done((*cctx));
+  atomic_oneway_msg_stop_t* msg = ((atomic_oneway_msg_stop_t*) pony_alloc_msg(POOL_INDEX(sizeof(atomic_oneway_msg_stop_t)), _ENC__MSG_ATOMIC_STOP));
+  pony_sendv(*cctx, a, (pony_msg_t*) msg);
 }
 
 void atomiq_start(pony_actor_t *a, pony_msg_t *m)
 {
-  a->read = ((pony_msgp_t *) m)->p;
+  a->read = (messageq_t*) ((atomic_oneway_msg_start_t*) m)->q;
 }
 
 void atomiq_stop(pony_actor_t *a)
 {
-  ponyint_messageq_destroy((messageq_t*) a->read);
+  // ponyint_messageq_destroy((messageq_t*) a->read);
   a->read = a->write;
 }
