@@ -197,9 +197,13 @@ bool ponyint_actor_run(pony_ctx_t** ctx, pony_actor_t* actor, size_t batch)
   // If we have been scheduled, the head will not be marked as empty.
   /* pony_msg_t* head = atomic_load_explicit(&actor->q.head, memory_order_relaxed); */
   /* while((msg = ponyint_messageq_pop(&actor->q)) != NULL) */
-  pony_msg_t* head = atomic_load_explicit(&actor->read->head, memory_order_relaxed);
-  while((msg = ponyint_messageq_pop(actor->read)) != NULL)
+  messageq_t* rq = atomic_load_explicit(&actor->read, memory_order_relaxed);
+
+  void *head = atomic_load_explicit(&rq->head, memory_order_relaxed);
+  
+  while((msg = ponyint_messageq_pop(rq)) != NULL)
   {
+
     if(handle_message(ctx, actor, msg))
     {
       // If we handle an application message, try to gc.
@@ -208,6 +212,15 @@ bool ponyint_actor_run(pony_ctx_t** ctx, pony_actor_t* actor, size_t batch)
      if(app == batch)
         return !has_flag(actor, FLAG_UNSCHEDULED);
     }
+
+    messageq_t *nq = atomic_load_explicit(&actor->read, memory_order_relaxed);
+    if (rq != nq)
+      {
+        // read queue has changed, need to update head
+        head = atomic_load_explicit(&nq->head, memory_order_relaxed);
+        rq = nq;
+      }
+
    // Stop handling a batch if we reach the head we found when we were
     // scheduled.
     if(msg == head)
@@ -244,7 +257,7 @@ bool ponyint_actor_run(pony_ctx_t** ctx, pony_actor_t* actor, size_t batch)
 
   // Return true (i.e. reschedule immediately) if our queue isn't empty.
   // return !ponyint_messageq_markempty(&actor->q);
-  return !ponyint_messageq_markempty(actor->read);
+  return !ponyint_messageq_markempty(rq);
 }
 
 void ponyint_actor_destroy(pony_actor_t* actor)
@@ -349,7 +362,6 @@ pony_actor_t* pony_create(pony_ctx_t* ctx, pony_type_t* type)
   ponyint_gc_done(&actor->gc);
   actor->read = &actor->q;
   actor->write = &actor->q;
-  actor->atomic = NULL;
 
   if(actor_noblock)
     ponyint_actor_setsystem(actor);
@@ -389,20 +401,23 @@ pony_msg_t* pony_alloc_msg_size(size_t size, uint32_t id)
   return pony_alloc_msg((uint32_t)ponyint_pool_index(size), id);
 }
 
-void pony_sendv(pony_ctx_t* ctx, pony_actor_t* to, pony_msg_t* m)
+void pony_sendv2(pony_ctx_t* ctx, pony_actor_t* to, pony_msg_t* m, messageq_t *q)
 {
   DTRACE2(ACTOR_MSG_SEND, (uintptr_t)ctx->scheduler, m->id);
 
   // if(ponyint_messageq_push(&to->q, m))
-  if(ponyint_messageq_push(to->write, m))
+  if(ponyint_messageq_push(q, m))
   {
     pony_actor_t* target = to;
-    if(to->atomic)
-      target = to->atomic;
 
     if(!has_flag(target, FLAG_UNSCHEDULED))
       ponyint_sched_add(ctx, target);
   }
+}
+
+void pony_sendv(pony_ctx_t* ctx, pony_actor_t* to, pony_msg_t* m)
+{
+  pony_sendv2(ctx, to, m, to->write);
 }
 
 void pony_send(pony_ctx_t* ctx, pony_actor_t* to, uint32_t id)

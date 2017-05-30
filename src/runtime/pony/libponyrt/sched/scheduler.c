@@ -529,6 +529,8 @@ void ponyint_sched_stop()
 
 void ponyint_sched_add(pony_ctx_t* ctx, pony_actor_t* actor)
 {
+  //fprintf(stderr, "Adding %p to %p\n", actor, ctx->scheduler);
+  
   if(ctx->scheduler != NULL)
   {
     // Add to the current scheduler thread.
