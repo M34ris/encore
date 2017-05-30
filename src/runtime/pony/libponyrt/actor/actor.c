@@ -257,7 +257,7 @@ bool ponyint_actor_run(pony_ctx_t** ctx, pony_actor_t* actor, size_t batch)
 
   // Return true (i.e. reschedule immediately) if our queue isn't empty.
   // return !ponyint_messageq_markempty(&actor->q);
-  return !ponyint_messageq_markempty(rq);
+  return false; //!ponyint_messageq_markempty(rq);
 }
 
 void ponyint_actor_destroy(pony_actor_t* actor)
@@ -401,15 +401,13 @@ pony_msg_t* pony_alloc_msg_size(size_t size, uint32_t id)
   return pony_alloc_msg((uint32_t)ponyint_pool_index(size), id);
 }
 
-void pony_sendv2(pony_ctx_t* ctx, pony_actor_t* to, pony_msg_t* m, messageq_t *q)
+void pony_sendv2(pony_ctx_t* ctx, pony_actor_t* target, pony_msg_t* m, messageq_t *q)
 {
   DTRACE2(ACTOR_MSG_SEND, (uintptr_t)ctx->scheduler, m->id);
 
   // if(ponyint_messageq_push(&to->q, m))
   if(ponyint_messageq_push(q, m))
   {
-    pony_actor_t* target = to;
-
     if(!has_flag(target, FLAG_UNSCHEDULED))
       ponyint_sched_add(ctx, target);
   }

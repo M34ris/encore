@@ -22,14 +22,15 @@ typedef struct pony_actor_t
 {
   pony_type_t* type;
   messageq_t q;
-  messageq_t* read;
-  messageq_t* write;
   pony_msg_t* continuation;
   uint8_t flags;
 
   // keep things accessed by other actors on a separate cache line
   __pony_spec_align__(heap_t heap, 64); // 52/104 bytes
   gc_t gc; // 44/80 bytes
+
+  messageq_t* read;
+  messageq_t* write;
 } pony_actor_t;
 
 bool ponyint_actor_run(pony_ctx_t** ctx, pony_actor_t* actor, size_t batch);
