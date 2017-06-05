@@ -48,7 +48,7 @@ static bool handle_message(pony_ctx_t** ctx, pony_actor_t* actor,
   pony_msg_t* msg)
 {
   if (!has_flag(actor, FLAG_SYSTEM)) {
-    if (encore_actor_handle_message_hook((encore_actor_t*)actor, msg)) {
+    if (encore_actor_handle_message_hook(*ctx, (encore_actor_t*)actor, msg)) {
       return true;
     }
   }
@@ -256,8 +256,7 @@ bool ponyint_actor_run(pony_ctx_t** ctx, pony_actor_t* actor, size_t batch)
   }
 
   // Return true (i.e. reschedule immediately) if our queue isn't empty.
-  // return !ponyint_messageq_markempty(&actor->q);
-  return false; //!ponyint_messageq_markempty(rq);
+  return !ponyint_messageq_markempty(rq);
 }
 
 void ponyint_actor_destroy(pony_actor_t* actor)
@@ -405,12 +404,20 @@ void pony_sendv2(pony_ctx_t* ctx, pony_actor_t* target, pony_msg_t* m, messageq_
 {
   DTRACE2(ACTOR_MSG_SEND, (uintptr_t)ctx->scheduler, m->id);
 
-  // if(ponyint_messageq_push(&to->q, m))
-  if(ponyint_messageq_push(q, m))
-  {
-    if(!has_flag(target, FLAG_UNSCHEDULED))
-      ponyint_sched_add(ctx, target);
-  }
+  if (target->write == q)
+    {
+      if(ponyint_messageq_push(q, m))
+        {
+          if(!has_flag(target, FLAG_UNSCHEDULED))
+            {
+              ponyint_sched_add(ctx, target);
+            }
+        }
+    }
+  else
+    {
+      ponyint_messageq_push(q, m);
+    }
 }
 
 void pony_sendv(pony_ctx_t* ctx, pony_actor_t* to, pony_msg_t* m)

@@ -398,7 +398,7 @@ bool encore_actor_run_hook(encore_actor_t *actor)
   return false;
 }
 
-bool encore_actor_handle_message_hook(encore_actor_t *actor, pony_msg_t* msg)
+bool encore_actor_handle_message_hook(pony_ctx_t *ctx, encore_actor_t *actor, pony_msg_t* msg)
 {
   // fprintf(stderr, "encore_actor_handle_message_hook!\n");
   switch(msg->id)
@@ -416,7 +416,7 @@ bool encore_actor_handle_message_hook(encore_actor_t *actor, pony_msg_t* msg)
       return true;
 
     case _ENC__MSG_ATOMIC_STOP:
-      atomiq_stop(actor);
+      atomiq_stop(ctx, actor);
       return true;
       
     case _ENC__MSG_RUN_CLOSURE:
@@ -492,13 +492,16 @@ void atomiq_start(encore_actor_t *a, atomic_oneway_msg_start_t *m)
   ((pony_actor_t *)a)->read = (messageq_t*) m->q;
 }
 
-void atomiq_stop(encore_actor_t *ea)
+void atomiq_stop(pony_ctx_t *ctx, encore_actor_t *ea)
 {
   pony_actor_t *a = (void *)ea;
   // fprintf(stderr, "Atomiq_stop: %p (%p --> %p)\n", a, a->write, a->read);
 
   assert(((pony_actor_t *)a)->write);
   ((pony_actor_t *)a)->read = ((pony_actor_t *)a)->write;
+
+  atomic_oneway_msg_stop_t* msg = ((atomic_oneway_msg_stop_t*) pony_alloc_msg_size(sizeof(atomic_oneway_msg_stop_t), 4711));
+  pony_sendv(ctx, a, (pony_msg_t*) msg);
 }
 
 void *atomiq_get(encore_actor_t *a)

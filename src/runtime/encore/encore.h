@@ -142,7 +142,7 @@ int encore_start(int argc, char** argv, pony_type_t *type);
 
 void actor_unlock(encore_actor_t *actor);
 bool encore_actor_run_hook(encore_actor_t *actor);
-bool encore_actor_handle_message_hook(encore_actor_t *actor, pony_msg_t* msg);
+bool encore_actor_handle_message_hook(pony_ctx_t *ctx, encore_actor_t *actor, pony_msg_t* msg);
 void actor_block(pony_ctx_t **ctx, encore_actor_t *actor);
 void actor_set_resume(encore_actor_t *actor);
 
@@ -207,7 +207,7 @@ typedef struct atomic_oneway_msg_stop
 void *atomiq_init(pony_ctx_t **cctx, pony_actor_t *a, pony_actor_t *b);
 void atomiq_finalize(pony_ctx_t **cctx, pony_actor_t *a, void *q);
 void atomiq_start(encore_actor_t *a, atomic_oneway_msg_start_t *m);
-void atomiq_stop(encore_actor_t *a);
+void atomiq_stop(pony_ctx_t *ctx, encore_actor_t *a);
 void *atomiq_get(encore_actor_t *a);
 
 #endif /* end of include guard: ENCORE_H_6Q243YHL */

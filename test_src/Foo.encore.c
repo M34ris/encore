@@ -253,6 +253,8 @@ static void _enc__dispatch__test_Foo(pony_ctx_t** _ctx, pony_actor_t* _a, pony_m
   _enc__class__test_Foo_t* _this = ((_enc__class__test_Foo_t*) _a);
   switch (_m->id)
   {
+    case 4711:
+      break;
     case _ENC__FUT_MSG__test_Foo_await:
     {
       future_t* _fut = ((encore_fut_msg_t*) _m)->_fut;

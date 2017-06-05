@@ -1,0 +1,21 @@
+active class Foo
+  val m : Main
+  def init(m:Main) : unit
+    this.m = m
+  end
+  def echo(i : int) : unit
+     println(i)
+  end
+end
+
+active class Main
+  def main() : unit
+    var foo = new Foo(this)
+    atomic foo as bar in
+      bar ! echo(1)
+      bar ! echo(2)
+      ()
+    end
+    --foo ! echo(3)
+  end
+end
