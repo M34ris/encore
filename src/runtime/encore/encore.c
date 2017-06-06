@@ -408,6 +408,14 @@ bool encore_actor_handle_message_hook(encore_actor_t *actor, pony_msg_t* msg)
       actor_await_resume(actor, ((pony_msgp_t*)msg)->p);
       return true;
 
+    case _ENC__MSG_ATOMIC_START:
+      atomiq_start(actor, (atomic_msg_start_t*) msg);
+      return true;
+
+  case _ENC__MSG_ATOMIC_STOP:
+      atomiq_stop(actor);
+      return true;
+
     case _ENC__MSG_RUN_CLOSURE:
       assert(-1);
       // run_closure(msg->argv[0].p, msg->argv[1].p, msg->argv[2].p);
@@ -445,40 +453,50 @@ void encore_trace_object(pony_ctx_t *ctx, void *p, pony_trace_fn f)
   ctx->trace_object(ctx, p, &(pony_type_t){.trace = f}, PONY_TRACE_MUTABLE);
 }
 
+void atomiq_send(pony_actor_t *target, messageq_wrapper_t *q, int id)
+{
+  (void) target;
+  (void) q;
+  (void) id;
+  // pony_send_atomic(target, q, id);
+}
+
 messageq_wrapper_t* atomiq_init(pony_ctx_t **cctx, pony_actor_t *a)
 {
   pony_gc_send((*cctx));
   pony_send_done((*cctx));
   messageq_t *q = pony_alloc(*cctx, sizeof(messageq_t));
   ponyint_messageq_init(q);
-  atomic_oneway_msg_start_t* msg = ((atomic_oneway_msg_start_t*) pony_alloc_msg(POOL_INDEX(sizeof(atomic_oneway_msg_start_t)), _ENC__MSG_ATOMIC_START));
+  atomic_msg_start_t* msg = ((atomic_msg_start_t*) pony_alloc_msg(POOL_INDEX(sizeof(atomic_msg_start_t)), _ENC__MSG_ATOMIC_START));
   msg->q = (messageq_wrapper_t*) q;
   pony_sendv(*cctx, a, (pony_msg_t*) msg);
   return (messageq_wrapper_t*) q;
 }
 
-void atomiq_setq(encore_actor_t *dest, encore_actor_t *src, messageq_wrapper_t *q)
-{
-  memcpy(dest, src, sizeof(encore_actor_t));
-  ((pony_actor_t*) dest)->write  = (messageq_t*) q;
-  ((pony_actor_t*) dest)->atomic = src;
-}
+/* void atomiq_setq(encore_actor_t *dest, encore_actor_t *src, messageq_wrapper_t *q) */
+/* { */
+/*   memcpy(dest, src, sizeof(encore_actor_t)); */
+/*   ((pony_actor_t*) dest)->write  = (messageq_t*) q; */
+/*   ((pony_actor_t*) dest)->atomic = src; */
+/* } */
 
 void atomiq_finalize(pony_ctx_t **cctx, pony_actor_t *a)
 {
   pony_gc_send((*cctx));
   pony_send_done((*cctx));
-  atomic_oneway_msg_stop_t* msg = ((atomic_oneway_msg_stop_t*) pony_alloc_msg(POOL_INDEX(sizeof(atomic_oneway_msg_stop_t)), _ENC__MSG_ATOMIC_STOP));
+  atomic_msg_stop_t* msg = ((atomic_msg_stop_t*) pony_alloc_msg(POOL_INDEX(sizeof(atomic_msg_stop_t)), _ENC__MSG_ATOMIC_STOP));
   pony_sendv(*cctx, a, (pony_msg_t*) msg);
 }
 
-void atomiq_start(pony_actor_t *a, pony_msg_t *m)
+void atomiq_start(encore_actor_t* a, atomic_msg_start_t* m)
 {
-  a->read = (messageq_t*) ((atomic_oneway_msg_start_t*) m)->q;
+  ((pony_actor_t*)a)->read = (messageq_t*) m->q;
 }
 
-void atomiq_stop(pony_actor_t *a)
+void atomiq_stop(encore_actor_t* ea)
 {
-  // ponyint_messageq_destroy((messageq_t*) a->read);
+  pony_actor_t* a = (pony_actor_t*) ea;
   a->read = a->write;
+  // need to reschedule actor if a->write isn't empty!
+  // ponyint_messageq_destroy((messageq_t*) a->read);
 }

@@ -768,10 +768,10 @@ instance Translatable A.Expr (State Ctx.Context (CCode Lval, CCode Stat)) where
                       Nothing -> error $ "Expr.hs: Could not find variable: " ++ (show name)
              targetTy = translate $ A.getType target
              atomInit = Seq $ [Assign (Decl (Ptr messageqWrapper, Var msgq))
-                                      (Call atomicMkFn [AsExpr encoreCtxVar, Cast (Ptr ponyActorT) atom]),
-                               Statement $ Decl (encoreActorT, Var new),
-                               Statement $ Call atomicSetq [Amp (Var new), Cast (Ptr encoreActorT) atom, AsExpr $ Var msgq],
-                               Assign atom (Cast targetTy $ Amp (Var new))]
+                                      (Call atomicMkFn [AsExpr encoreCtxVar, Cast (Ptr ponyActorT) atom])]
+                               --Statement $ Decl (encoreActorT, Var new),
+                               --Statement $ Call atomicSetq [Amp (Var new), Cast (Ptr encoreActorT) atom, AsExpr $ Var msgq],
+                               --Assign atom (Cast targetTy $ Amp (Var new))]
              atomFnlz = Statement $ Call atomicFinalize [AsExpr encoreCtxVar, Cast (Ptr ponyActorT) atom]
          return (unit, Seq [atomInit, Statement tbody, atomFnlz])
 
