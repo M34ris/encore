@@ -11,6 +11,9 @@ LIB_DIR=$(RELEASE_DIR)/lib
 
 all: encorec
 
+atom: encorec
+	cd test_src/ && make && ruby test.rb
+
 typecheck:
 	cabal build --ghc-option=-fno-code
 

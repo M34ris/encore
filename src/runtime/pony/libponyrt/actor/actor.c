@@ -256,6 +256,9 @@ bool ponyint_actor_run(pony_ctx_t** ctx, pony_actor_t* actor, size_t batch)
   }
 
   // Return true (i.e. reschedule immediately) if our queue isn't empty.
+  // return !ponyint_messageq_markempty(rq);
+  /* if(!has_flag(actor, FLAG_UNSCHEDULED)) */
+  /*   return false; */
   return !ponyint_messageq_markempty(rq);
 }
 
