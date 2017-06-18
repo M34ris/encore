@@ -23,6 +23,7 @@ traceVariable t var
   | Ty.isRefAtomType t &&
     Ty.isSharedSingleType t = traceActor var
   | Ty.isClassType t        = traceObject var $ classTraceFnName t
+  | Ty.isBestowedType t     = traceObject var $ classTraceFnName (Ty.bestowObjectType (Ty.getResultType t))
   | Ty.isCapabilityType t   = traceCapability var
   | Ty.isFutureType t       = traceObject var futureTraceFn
   | Ty.isArrowType t        = traceObject var closureTraceFn
