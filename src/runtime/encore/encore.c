@@ -443,3 +443,77 @@ void encore_trace_object(pony_ctx_t *ctx, void *p, pony_trace_fn f)
   if (!p) { return; }
   ctx->trace_object(ctx, p, &(pony_type_t){.trace = f}, PONY_TRACE_MUTABLE);
 }
+
+void* bestow_search(encore_actor_t *own, void *obj)
+{
+  bestow_node_t *ptr = own->head;
+  while (ptr)
+  {
+    if (ptr->object == obj)
+      return ptr;
+
+    ptr = ptr->next;
+  }
+  return NULL;
+}
+
+bestow_node_t* bestow_prepend(pony_ctx_t *ctx, encore_actor_t *own, void *obj)
+{
+  bestow_node_t *node = encore_alloc(ctx, sizeof(struct bestow_node));
+  node->object = obj;
+  own->head = node;
+  return node;
+}
+
+void bestow_create(pony_ctx_t *ctx, encore_actor_t *own, void *obj)
+{
+  if (!own->head)
+    bestow_prepend(ctx, own, obj);
+
+
+  if (!bestow_search(own, obj))
+  {
+    bestow_node_t *old = own->head;
+    bestow_node_t *new = bestow_prepend(ctx, own, obj);
+    new->next = old;
+  }
+}
+
+void bestow_destroy(pony_ctx_t *ctx, encore_actor_t *own, void *obj)
+{
+  (void) ctx;
+
+  bestow_node_t *prev = NULL;
+  bestow_node_t *ptr = own->head;
+
+  while (ptr)
+  {
+    if (ptr->object == obj)
+      break;
+
+    prev = ptr;
+    ptr = ptr->next;
+  }
+
+  if (!ptr)
+    return;
+
+  if (!prev)
+    own->head = ptr->next;
+  else
+    prev->next = ptr->next;
+
+  // free ptr?
+}
+
+void bestow_trace(pony_ctx_t *ctx, void *own, encore_arg_t obj, pony_type_t *ty)
+{
+  (void) ctx;
+  (void) own;
+  (void) obj;
+  (void) ty;
+  /* if (ctx->current == own) */
+  /*   encore_trace_polymorphic_variable(ctx, ty, obj); */
+  /* else */
+  /*   /\* Not tracing the object externaly (for now) *\/ */
+}

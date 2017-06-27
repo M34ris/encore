@@ -913,13 +913,15 @@ bestowObjectType ty = setRefSourceFile "Std.enc" $
                     makeUnsafe $ classType "Bestow" [ty]
 
 isBestowObjectType ty = isClassType ty &&
-                        getId ty == "Bestow"
+                        getId ty == "Bestow" &&
+                        getRefSourceFile ty == "Std.enc"
 
 actorObjectType = setRefSourceFile "Std.enc" $
                   makeActive $ traitType "Actor" []
 
 isActorObjectType ty = isTraitType ty &&
-                       getId ty == "Actor"
+                       getId ty == "Actor" &&
+                       getRefSourceFile ty == "Std.enc"
 
 stringObjectType = setRefSourceFile "String.enc" $
                     makeRead $ classType "String" []

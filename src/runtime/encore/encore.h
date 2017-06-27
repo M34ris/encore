@@ -91,6 +91,11 @@ typedef struct stack_page {
   struct stack_page *next;
 } stack_page;
 
+typedef struct bestow_node {
+  void *object;
+  void *next;
+} bestow_node_t;
+
 void *get_local_page_stack();
 struct encore_actor
 {
@@ -100,6 +105,7 @@ struct encore_actor
   int await_counter;
   int suspend_counter;
   pthread_mutex_t *lock;
+  bestow_node_t *head;
 #ifndef LAZY_IMPL
   ucontext_t uctx;
   ucontext_t home_uctx;
@@ -171,6 +177,10 @@ static inline void encore_trace_polymorphic_variable(
     }
   }
 }
+
+void bestow_create(pony_ctx_t *ctx, encore_actor_t *own, void *obj);
+void bestow_destroy(pony_ctx_t *ctx, encore_actor_t *own, void *obj);
+void bestow_trace(pony_ctx_t *ctx, void *own, encore_arg_t obj, pony_type_t *ty);
 
 /// Internal assert function
 void encore_assert(intptr_t p);
