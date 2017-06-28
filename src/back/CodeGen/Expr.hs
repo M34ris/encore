@@ -759,28 +759,6 @@ instance Translatable A.Expr (State Ctx.Context (CCode Lval, CCode Stat)) where
                  Seq [AsExpr $ Decl (translate (A.getType ite), Var tmp),
                       If (StatAsExpr ncond tcond) (Statement exportThn) (Statement exportEls)])
 
-  translate (A.Bestow{A.emeta, A.bestowExpr}) =
-      do
-         (_, tbody) <- translate bestowBody
-         (_, tvar) <- translate bestowVar
-         return (unit, Seq [tbody, Statement $ Call (Nam "bestow_insert") [Deref $ AsExpr encoreCtxVar, AsExpr thisVar, tvar]])
-      where
-         targetTy   = A.getType bestowExpr
-         bestowBody = genBody bestowExpr
-         bestowVar  = getVar bestowExpr
-         bestowNam  = "bstvar"
-
-         getVar expr@(A.VarAccess{}) = expr
-         getVar _ = A.VarAccess{A.emeta = emeta, A.qname = ID.qName bestowNam}
-
-         genBox target = A.NewWithInit{A.emeta = emeta, A.ty = Ty.bestowObjectType targetTy,
-                                       A.args = [target, A.VarAccess{A.emeta = emeta, A.qname = ID.qName "this"}]}
-
-         genBody expr@(A.VarAccess{}) = genBox bestowExpr
-         genBody expr = A.Let{A.emeta = emeta, A.mutability = A.Val,
-                              A.decls = [([A.VarType {A.varName = ID.Name bestowNam, A.varType = targetTy}], expr)],
-                              A.body  = genBox A.VarAccess{A.emeta = emeta, A.qname = ID.qName bestowNam}}
-
   translate m@(A.Match {A.arg, A.clauses}) =
       do retTmp <- Ctx.genNamedSym "match"
          (narg, targ) <- translate arg

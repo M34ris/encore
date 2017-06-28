@@ -470,8 +470,9 @@ bestow_node_t* bestow_prepend(pony_ctx_t *ctx, encore_actor_t *own, void *obj)
   return node;
 }
 
-void bestow_insert(pony_ctx_t *ctx, encore_actor_t *own, void *obj)
+void bestow_insert(pony_ctx_t *ctx, void *obj)
 {
+  encore_actor_t *own = (encore_actor_t*) ctx->current;
   if (!own->head)
     bestow_prepend(ctx, own, obj);
 
@@ -494,21 +495,19 @@ void bestow_remove(pony_ctx_t *ctx, encore_actor_t *own, void *obj)
   while (ptr)
   {
     if (ptr->object == obj)
-      break;
+    {
+      if (!prev)
+        own->head = ptr->next;
+      else
+        prev->next = ptr->next;
+
+      return;
+      // free ptr?
+    }
 
     prev = ptr;
     ptr = ptr->next;
   }
-
-  if (!ptr)
-    return;
-
-  if (!prev)
-    own->head = ptr->next;
-  else
-    prev->next = ptr->next;
-
-  // free ptr?
 }
 
 // Keeping this for now, might switch to runtime implementation of bestow

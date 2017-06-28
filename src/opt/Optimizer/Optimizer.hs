@@ -149,16 +149,33 @@ dropBorrowBlocks = extend dropBorrowBlock
       dropBorrowBlock e = e
 
 bestowExpression :: Expr -> Expr
-bestowExpression e = e
--- bestowExpression :: Expr -> Expr
--- bestowExpression = extend bestowTranslate
---   where
---     bestowTranslate e@(Bestow{emeta, bestowExpr}) = setType (bestowedType bestowTy) $ bestowBox
---       where
---         bestowTy = getType bestowExpr
---         bestowBox = NewWithInit{emeta = emeta, ty = bestowObjectType bestowTy,
---                                 args = [bestowExpr, VarAccess{emeta, qname = qName "this"}]}
---     bestowTranslate e = e
+bestowExpression = extend bestowTranslate
+  where
+    bestowTranslate e@(Bestow{emeta, bestowExpr}) = bestowBody
+      where
+        targetTy   = getType bestowExpr
+        bestowBody = genBody bestowExpr
+        bestowVar  = getVar bestowExpr
+        bestowNam  = "bstvar"
+        newVar     = VarAccess{emeta = emeta, qname = qName bestowNam}
+
+        getVar expr@(VarAccess{}) = expr
+        getVar _ = newVar
+
+        genBox target =
+          Seq{emeta = emeta,
+              eseq  = [setType (bestowedType targetTy) $
+                       NewWithInit{emeta = emeta, ty = bestowObjectType targetTy,
+                                   args = [target, VarAccess{emeta = emeta, qname = qName "this"}]},
+                       setType unitType $
+                       Embed{emeta = emeta, ty = unitType,
+                             embedded = [ ("bestow_insert(*_ctx, ", newVar), (");", Skip{emeta}) ]} ]}
+
+        genBody expr@(VarAccess{}) = genBox bestowExpr
+        genBody expr = Let{emeta = emeta, mutability = Val,
+                           decls = [([VarType {varName = Name bestowNam, varType = targetTy}], expr)],
+                           body  = genBox newVar}
+    bestowTranslate e = e
 
 bestowPerformClosure :: Expr -> Expr
 bestowPerformClosure = extend bestowSend
