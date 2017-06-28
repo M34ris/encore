@@ -1,0 +1,32 @@
+local class Primitive
+end
+
+local class Node
+  var elem : Primitive
+  def create() : unit
+    println(42)
+    this.elem = new Primitive
+  end
+end
+
+active class Wrapper : Actor
+  var node : Node
+  def init() : unit
+    this.node = new Node
+  end
+  def bestowNode() : Bestowed[Node]
+    bestow this.node
+  end
+end
+
+active class Main
+  def main() : unit
+    val wrap = new Wrapper()
+    val node = get(wrap!bestowNode())
+    var i = 10
+    while (i > 0) do
+      node!create()
+      i -= 1
+    end
+  end
+end

@@ -149,14 +149,16 @@ dropBorrowBlocks = extend dropBorrowBlock
       dropBorrowBlock e = e
 
 bestowExpression :: Expr -> Expr
-bestowExpression = extend bestowTranslate
-  where
-    bestowTranslate e@(Bestow{emeta, bestowExpr}) = setType (bestowedType bestowTy) $ bestowBox
-      where
-        bestowTy = getType bestowExpr
-        bestowBox = NewWithInit{emeta = emeta, ty = bestowObjectType bestowTy,
-                                args = [bestowExpr, VarAccess{emeta, qname = qName "this"}]}
-    bestowTranslate e = e
+bestowExpression e = e
+-- bestowExpression :: Expr -> Expr
+-- bestowExpression = extend bestowTranslate
+--   where
+--     bestowTranslate e@(Bestow{emeta, bestowExpr}) = setType (bestowedType bestowTy) $ bestowBox
+--       where
+--         bestowTy = getType bestowExpr
+--         bestowBox = NewWithInit{emeta = emeta, ty = bestowObjectType bestowTy,
+--                                 args = [bestowExpr, VarAccess{emeta, qname = qName "this"}]}
+--     bestowTranslate e = e
 
 bestowPerformClosure :: Expr -> Expr
 bestowPerformClosure = extend bestowSend

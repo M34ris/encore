@@ -358,12 +358,10 @@ tracefunDecl A.Class{A.cname, A.cfields, A.cmethods} =
           var = Var . show $ fieldName fname
           field = thisVar `Arrow` fieldName fname
           fieldAssign = Assign (Decl (translate ftype, var)) field
-
-traceBestow :: Ty.Type -> CCode Lval -> CCode Stat
-traceBestow t var
-  | Ty.isTypeVar t = Statement $ Call (Nam "bestow_trace")
-                     [Deref encoreCtxVar, Var "_enc__field_owner", var, Var "_enc__type_obj"]
-  | otherwise = traceVariable t var
+      traceBestow :: Ty.Type -> CCode Lval -> CCode Stat
+      traceBestow t var
+        | Ty.isTypeVar t = Statement $ Call ponyTrace [ctxArg, var `Dot` (Nam "p")]
+        | otherwise = traceVariable t var
 
 
 runtimeTypeDecl cname =

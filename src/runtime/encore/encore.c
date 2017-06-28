@@ -444,6 +444,11 @@ void encore_trace_object(pony_ctx_t *ctx, void *p, pony_trace_fn f)
   ctx->trace_object(ctx, p, &(pony_type_t){.trace = f}, PONY_TRACE_MUTABLE);
 }
 
+bestow_node_t* bestow_head(encore_actor_t *own)
+{
+  return own->head;
+}
+
 void* bestow_search(encore_actor_t *own, void *obj)
 {
   bestow_node_t *ptr = own->head;
@@ -465,7 +470,7 @@ bestow_node_t* bestow_prepend(pony_ctx_t *ctx, encore_actor_t *own, void *obj)
   return node;
 }
 
-void bestow_create(pony_ctx_t *ctx, encore_actor_t *own, void *obj)
+void bestow_insert(pony_ctx_t *ctx, encore_actor_t *own, void *obj)
 {
   if (!own->head)
     bestow_prepend(ctx, own, obj);
@@ -479,7 +484,7 @@ void bestow_create(pony_ctx_t *ctx, encore_actor_t *own, void *obj)
   }
 }
 
-void bestow_destroy(pony_ctx_t *ctx, encore_actor_t *own, void *obj)
+void bestow_remove(pony_ctx_t *ctx, encore_actor_t *own, void *obj)
 {
   (void) ctx;
 
@@ -506,14 +511,9 @@ void bestow_destroy(pony_ctx_t *ctx, encore_actor_t *own, void *obj)
   // free ptr?
 }
 
-void bestow_trace(pony_ctx_t *ctx, void *own, encore_arg_t obj, pony_type_t *ty)
+// Keeping this for now, might switch to runtime implementation of bestow
+void bestow_trace(pony_ctx_t *ctx, void *own, encore_arg_t obj)
 {
-  (void) ctx;
-  (void) own;
-  (void) obj;
-  (void) ty;
-  /* if (ctx->current == own) */
-  /*   encore_trace_polymorphic_variable(ctx, ty, obj); */
-  /* else */
-  /*   /\* Not tracing the object externaly (for now) *\/ */
+  encore_trace_actor(ctx, ((pony_actor_t*) own));
+  pony_trace(ctx, obj.p);
 }

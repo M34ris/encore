@@ -149,6 +149,19 @@ static void try_gc(pony_ctx_t* ctx, pony_actor_t* actor)
   if(actor->type->trace != NULL)
     actor->type->trace(ctx, actor);
 
+  bestow_node_t *node = bestow_head((encore_actor_t*) actor);
+  while (node)
+  {
+    void *object = node->object;
+    object_t *obj = ponyint_objectmap_getobject(&actor->gc.local, object);
+    if (obj->rc != 0)
+      encore_trace_object(ctx, object, ((capability_t*) object)->_enc__self_type->trace);
+    else
+      bestow_remove(ctx, (encore_actor_t*) actor, object);
+
+    node = node->next;
+  }
+
   ponyint_mark_done(ctx);
   ponyint_heap_endgc(&actor->heap);
 

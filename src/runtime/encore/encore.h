@@ -178,9 +178,10 @@ static inline void encore_trace_polymorphic_variable(
   }
 }
 
-void bestow_create(pony_ctx_t *ctx, encore_actor_t *own, void *obj);
-void bestow_destroy(pony_ctx_t *ctx, encore_actor_t *own, void *obj);
-void bestow_trace(pony_ctx_t *ctx, void *own, encore_arg_t obj, pony_type_t *ty);
+bestow_node_t* bestow_head(encore_actor_t *own);
+void bestow_insert(pony_ctx_t *ctx, encore_actor_t *own, void *obj);
+void bestow_remove(pony_ctx_t *ctx, encore_actor_t *own, void *obj);
+void bestow_trace(pony_ctx_t *ctx, void *own, encore_arg_t obj);
 
 /// Internal assert function
 void encore_assert(intptr_t p);
