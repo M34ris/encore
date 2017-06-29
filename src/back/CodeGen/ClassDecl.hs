@@ -76,9 +76,9 @@ dispatchFunDecl cdecl@(A.Class{A.cname, A.cfields, A.cmethods}) =
            (Switch (Var "_m" `Arrow` Nam "id")
             (
              (if (A.isMainClass cdecl)
-              then ponyMainClause :
+              then msgAtomicStart : msgAtomicStop : ponyMainClause :
                    methodClauses (filter ((/= ID.Name "main") . A.methodName) cmethods)
-              else methodClauses $ cmethods
+              else msgAtomicStart : msgAtomicStop : (methodClauses $ cmethods)
              ))
             (Statement $ Call (Nam "printf") [String "error, got invalid id: %zd", AsExpr $ (Var "_m") `Arrow` (Nam "id")]))]))
      where
@@ -97,12 +97,19 @@ dispatchFunDecl cdecl@(A.Class{A.cname, A.cfields, A.cmethods}) =
                                           [AsExpr encoreCtxVar,
                                            AsExpr $ (Var "msg") `Arrow` (Nam "argc"),
                                            AsExpr $ (Var "msg") `Arrow` (Nam "argv")]]])
+       msgAtomicStart =
+           (Nam "_ENC__MSG_ATOMIC_START",
+            Statement $ Call atomicStart [AsExpr (Var "_a"), AsExpr (Var "_m")])
+       msgAtomicStop =
+           (Nam "_ENC__MSG_ATOMIC_STOP",
+            Statement $ Call atomicStop [AsExpr (Var "_a")])
+
        methodClauses = concatMap methodClause
 
        methodClause m = (mthdDispatchClause m mArgs) :
-                         if not (A.isStreamMethod m)
-                         then [oneWaySendDispatchClause m mArgs]
-                         else []
+                        if not (A.isStreamMethod m)
+                        then [oneWaySendDispatchClause m mArgs]
+                        else []
          where
            mArgs = (A.methodName &&& A.methodParams) m
 

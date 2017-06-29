@@ -3,6 +3,7 @@
 #include "encore.h"
 #include "closure.h"
 #include "actor/actor.h"
+#include "actor/messageq.h"
 #include "sched/scheduler.h"
 #include "mem/pool.h"
 #include <string.h>
@@ -442,4 +443,42 @@ void encore_trace_object(pony_ctx_t *ctx, void *p, pony_trace_fn f)
 {
   if (!p) { return; }
   ctx->trace_object(ctx, p, &(pony_type_t){.trace = f}, PONY_TRACE_MUTABLE);
+}
+
+messageq_wrapper_t* atomiq_init(pony_ctx_t **cctx, pony_actor_t *a)
+{
+  pony_gc_send((*cctx));
+  pony_send_done((*cctx));
+  messageq_t *q = pony_alloc(*cctx, sizeof(messageq_t));
+  ponyint_messageq_init(q);
+  atomic_oneway_msg_start_t* msg = ((atomic_oneway_msg_start_t*) pony_alloc_msg(POOL_INDEX(sizeof(atomic_oneway_msg_start_t)), _ENC__MSG_ATOMIC_START));
+  msg->q = (messageq_wrapper_t*) q;
+  pony_sendv(*cctx, a, (pony_msg_t*) msg);
+  return (messageq_wrapper_t*) q;
+}
+
+void atomiq_setq(encore_actor_t *dest, encore_actor_t *src, messageq_wrapper_t *q)
+{
+  memcpy(dest, src, sizeof(encore_actor_t));
+  ((pony_actor_t*) dest)->write  = (messageq_t*) q;
+  ((pony_actor_t*) dest)->atomic = src;
+}
+
+void atomiq_finalize(pony_ctx_t **cctx, pony_actor_t *a)
+{
+  pony_gc_send((*cctx));
+  pony_send_done((*cctx));
+  atomic_oneway_msg_stop_t* msg = ((atomic_oneway_msg_stop_t*) pony_alloc_msg(POOL_INDEX(sizeof(atomic_oneway_msg_stop_t)), _ENC__MSG_ATOMIC_STOP));
+  pony_sendv(*cctx, a, (pony_msg_t*) msg);
+}
+
+void atomiq_start(pony_actor_t *a, pony_msg_t *m)
+{
+  a->read = (messageq_t*) ((atomic_oneway_msg_start_t*) m)->q;
+}
+
+void atomiq_stop(pony_actor_t *a)
+{
+  // ponyint_messageq_destroy((messageq_t*) a->read);
+  a->read = a->write;
 }
