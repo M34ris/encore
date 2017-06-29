@@ -155,26 +155,29 @@ bestowExpression = extend bestowTranslate
       where
         targetTy   = getType bestowExpr
         bestowBody = genBody bestowExpr
-        bestowVar  = getVar bestowExpr
-        bestowNam  = "bstvar"
-        newVar     = VarAccess{emeta = emeta, qname = qName bestowNam}
-
-        getVar expr@(VarAccess{}) = expr
-        getVar _ = newVar
+        bestowObj  = "bstvar"
+        bestowBox  = "new"
+        aliasObj   = setType targetTy $
+                     VarAccess{emeta = emeta, qname = qName bestowObj}
+        aliasBox   = setType (bestowedType targetTy) $
+                     VarAccess{emeta = emeta, qname = qName bestowBox}
 
         genBox target =
-          Seq{emeta = emeta,
-              eseq  = [setType (bestowedType targetTy) $
-                       NewWithInit{emeta = emeta, ty = bestowObjectType targetTy,
-                                   args = [target, VarAccess{emeta = emeta, qname = qName "this"}]},
-                       setType unitType $
-                       Embed{emeta = emeta, ty = unitType,
-                             embedded = [ ("bestow_insert(*_ctx, ", newVar), (");", Skip{emeta}) ]} ]}
+          Let{emeta = emeta, mutability = Val,
+              decls = [([VarType {varName = Name bestowBox, varType = targetTy}],
+                         setType (bestowedType targetTy) $
+                         NewWithInit{emeta = emeta, ty = bestowObjectType targetTy,
+                                     args = [target, VarAccess{emeta = emeta, qname = qName "this"}]})],
+              body  = Seq{emeta = emeta,
+                          eseq  = [setType unitType $
+                                   Embed{emeta = emeta, ty = unitType,
+                                         embedded = [ ("bestow_insert(*_ctx, ", aliasObj), (");", Skip{emeta}) ]},
+                                   aliasBox]}}
 
         genBody expr@(VarAccess{}) = genBox bestowExpr
         genBody expr = Let{emeta = emeta, mutability = Val,
-                           decls = [([VarType {varName = Name bestowNam, varType = targetTy}], expr)],
-                           body  = genBox newVar}
+                           decls = [([VarType {varName = Name bestowObj, varType = targetTy}], expr)],
+                           body  = genBox aliasObj}
     bestowTranslate e = e
 
 bestowPerformClosure :: Expr -> Expr

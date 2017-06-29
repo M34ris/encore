@@ -451,21 +451,27 @@ bestow_node_t* bestow_head(encore_actor_t *own)
 
 void* bestow_search(encore_actor_t *own, void *obj)
 {
+  printf("===== insert: %p =====\n", obj);
   bestow_node_t *ptr = own->head;
+  bestow_node_t *sav = NULL;
   while (ptr)
   {
+    printf("node: %p   obj: %p   next: %p\n", ptr, ptr->object, ptr->next);
     if (ptr->object == obj)
-      return ptr;
+      sav = ptr;
+      //return ptr;
 
     ptr = ptr->next;
   }
-  return NULL;
+  //return NULL;
+  return sav;
 }
 
 bestow_node_t* bestow_prepend(pony_ctx_t *ctx, encore_actor_t *own, void *obj)
 {
   bestow_node_t *node = encore_alloc(ctx, sizeof(struct bestow_node));
   node->object = obj;
+  node->next = NULL;
   own->head = node;
   return node;
 }
