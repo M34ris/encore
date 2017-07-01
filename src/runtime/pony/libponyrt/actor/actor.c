@@ -155,11 +155,15 @@ static void try_gc(pony_ctx_t* ctx, pony_actor_t* actor)
     printf("*** INIT GC ***\n");
     void *object = node->object;
     object_t *obj = ponyint_objectmap_getobject(&actor->gc.local, object);
-    printf("[gc] obj: %p   rc: %zu\n", obj, obj->rc);
-    if (obj->rc != 0)
+    printf("[gc] obj: %p   rc: %zu\n", object, obj->rc);
+    if (obj->rc != 0) {
+      printf("trace fn: %p\n", ((capability_t*) object)->_enc__self_type->trace);
       encore_trace_object(ctx, object, ((capability_t*) object)->_enc__self_type->trace);
-    else
+    }
+    else {
+      printf("remove\n");
       bestow_remove(ctx, (encore_actor_t*) actor, object);
+    }
 
     node = node->next;
   }
