@@ -1,0 +1,40 @@
+local class Box
+end
+
+active class Wrapper : Actor
+  var box1 : Box
+  var box2 : Box
+  var box3 : Box    
+  def init() : unit
+    this.box1 = new Box
+    this.box2 = new Box
+    this.box3 = new Box
+  end
+  def bestowBox1() : Bestowed[Box]
+    bestow this.box1
+  end
+  def bestowBox2() : Bestowed[Box]
+    bestow this.box2
+  end
+  def bestowBox3() : Bestowed[Box]
+    bestow this.box3
+  end
+end
+
+active class Main
+  var wrap : Wrapper
+  def main() : unit
+    var n = 10
+    this.wrap = new Wrapper()
+    this.looper(n)
+  end 
+  def looper(n : int) : unit
+    println(n)
+    get(this.wrap!bestowBox1())
+    get(this.wrap!bestowBox2())
+    get(this.wrap!bestowBox3())
+    if (n > 0) then
+      this.looper(n-1)
+    end
+  end
+end
