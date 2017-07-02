@@ -451,12 +451,12 @@ bestow_node_t* bestow_head(encore_actor_t *own)
 
 void* bestow_search(encore_actor_t *own, void *obj)
 {
-  printf("===== insert: %p =====\n", obj);
+  // printf("===== insert: %p =====\n", obj);
   bestow_node_t *ptr = own->head;
   bestow_node_t *sav = NULL;
   while (ptr)
   {
-    printf("node: %p   obj: %p   next: %p\n", ptr, ptr->object, ptr->next);
+    // printf("node: %p   obj: %p   next: %p\n", ptr, ptr->object, ptr->next);
     if (ptr->object == obj)
       sav = ptr;
       //return ptr;

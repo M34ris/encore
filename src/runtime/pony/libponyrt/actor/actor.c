@@ -150,18 +150,20 @@ static void try_gc(pony_ctx_t* ctx, pony_actor_t* actor)
     actor->type->trace(ctx, actor);
 
   bestow_node_t *node = bestow_head((encore_actor_t*) actor);
+  // if (node)
+    // printf("*** INIT GC ***\n");
+
   while (node)
   {
-    printf("*** INIT GC ***\n");
     void *object = node->object;
     object_t *obj = ponyint_objectmap_getobject(&actor->gc.local, object);
-    printf("[gc] obj: %p   rc: %zu\n", object, obj->rc);
+    // printf("[gc] obj: %p   rc: %zu\n", object, obj->rc);
     if (obj->rc != 0) {
-      printf("trace fn: %p\n", ((capability_t*) object)->_enc__self_type->trace);
+      // printf("trace fn: %p\n", ((capability_t*) object)->_enc__self_type->trace);
       encore_trace_object(ctx, object, ((capability_t*) object)->_enc__self_type->trace);
     }
     else {
-      printf("remove\n");
+      // printf("remove\n");
       bestow_remove(ctx, (encore_actor_t*) actor, object);
     }
 
