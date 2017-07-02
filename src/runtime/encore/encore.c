@@ -469,7 +469,9 @@ void* bestow_search(encore_actor_t *own, void *obj)
 
 bestow_node_t* bestow_prepend(pony_ctx_t *ctx, encore_actor_t *own, void *obj)
 {
-  bestow_node_t *node = encore_alloc(ctx, sizeof(struct bestow_node));
+  // bestow_node_t *node = encore_alloc(ctx, sizeof(struct bestow_node));
+  (void) ctx;
+  bestow_node_t *node = POOL_ALLOC(struct bestow_node);
   node->object = obj;
   node->next = NULL;
   own->head = node;
@@ -507,8 +509,8 @@ void bestow_remove(pony_ctx_t *ctx, encore_actor_t *own, void *obj)
       else
         prev->next = ptr->next;
 
+      POOL_FREE(struct bestow_node, ptr); // free ptr?
       return;
-      // free ptr?
     }
 
     prev = ptr;
