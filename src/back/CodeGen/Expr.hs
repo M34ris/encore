@@ -1074,6 +1074,14 @@ instance Translatable A.Expr (State Ctx.Context (CCode Lval, CCode Stat)) where
                                )),
                        Assign (Decl (resultType, Var tmp)) theGet])
 
+  translate bestow@(A.Bestow{A.bestowExpr}) =
+      do (mval, tval) <- translate bestowExpr
+         bstVar <- Ctx.genNamedSym "bst"
+         let bstMk  = Call bestowWrapperMk [AsExpr encoreCtxVar, AsExpr mval]
+             assign = Assign (Decl (C.bestow, Var bstVar)) bstMk
+             insert = Statement $ Call bestowInsert [Deref encoreCtxVar, Var bstVar]
+         return (Var bstVar, Seq [assign, insert, tval])
+
   translate yield@(A.Yield{A.val}) =
       do (nval, tval) <- translate val
          tmp <- Ctx.genSym

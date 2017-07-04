@@ -49,7 +49,7 @@ optimizeProgram p@(Program{classes, traits, functions}) =
 -- | The functions in this list will be performed in order during optimization
 optimizerPasses :: [Expr -> Expr]
 optimizerPasses = [constantFolding, sugarPrintedStrings, tupleMaybeIdComparison,
-                   dropBorrowBlocks, forwardGeneral, bestowExpression, bestowPerformClosure] 
+                   dropBorrowBlocks, forwardGeneral, bestowPerformClosure]
 
 -- Note that this is not intended as a serious optimization, but
 -- as an example to how an optimization could be made. As soon as
@@ -147,38 +147,6 @@ dropBorrowBlocks = extend dropBorrowBlock
            ,decls = [([VarNoType name], target)]
            ,body}
       dropBorrowBlock e = e
-
-bestowExpression :: Expr -> Expr
-bestowExpression = extend bestowTranslate
-  where
-    bestowTranslate e@(Bestow{emeta, bestowExpr}) = bestowBody
-      where
-        targetTy   = getType bestowExpr
-        bestowBody = genBody bestowExpr
-        bestowObj  = "bstvar"
-        bestowBox  = "new"
-        aliasObj   = setType targetTy $
-                     VarAccess{emeta = emeta, qname = qName bestowObj}
-        aliasBox   = setType (bestowedType targetTy) $
-                     VarAccess{emeta = emeta, qname = qName bestowBox}
-
-        genBox target =
-          Let{emeta = emeta, mutability = Val,
-              decls = [([VarType {varName = Name bestowBox, varType = targetTy}],
-                         setType (bestowedType targetTy) $
-                         NewWithInit{emeta = emeta, ty = bestowObjectType targetTy,
-                                     args = [target, VarAccess{emeta = emeta, qname = qName "this"}]})],
-              body  = Seq{emeta = emeta,
-                          eseq  = [setType unitType $
-                                   Embed{emeta = emeta, ty = unitType,
-                                         embedded = [ ("bestow_insert(*_ctx, ", aliasObj), (");", Skip{emeta}) ]},
-                                   aliasBox]}}
-
-        genBody expr@(VarAccess{}) = genBox bestowExpr
-        genBody expr = Let{emeta = emeta, mutability = Val,
-                           decls = [([VarType {varName = Name bestowObj, varType = targetTy}], expr)],
-                           body  = genBox aliasObj}
-    bestowTranslate e = e
 
 bestowPerformClosure :: Expr -> Expr
 bestowPerformClosure = extend bestowSend

@@ -16,25 +16,26 @@ pony_type_t bestow_type = {
 /* { */
 /*   assert(bw); */
 /*   if (bw->type == ENCORE_ACTIVE) { */
-/*     encore_trace_actor(ctx, bw->object.p); */
+/*     encore_trace_actor(ctx, bw->object); */
 /*   } else if (bw->type != ENCORE_PRIMITIVE) { */
-/*     encore_trace_object(ctx, bw->object.p, bw->type->trace); */
+/*     encore_trace_object(ctx, bw->object, bw->type->trace); */
 /*   } */
 /* } */
 
 void bestow_trace(pony_ctx_t *ctx, void *p)
 {
-  encore_trace_actor(ctx, (bestow_wrapper_t*)p->owner);
-  pony_trace(ctx, (bestow_wrapper_t*)p->object);
+  encore_trace_actor(ctx, ((bestow_wrapper_t*)p)->owner);
+  pony_trace(ctx, ((bestow_wrapper_t*)p)->object);
 }
 
-bestow_wrapper_t *bestow_wrapper_mk(pony_ctx_t **ctx, pony_type_t *type, encore_arg_t object)
+bestow_wrapper_t *bestow_wrapper_mk(pony_ctx_t **ctx, void *object)
 {
   pony_ctx_t *cctx = *ctx;
   bestow_wrapper_t *bw = pony_alloc(cctx, sizeof(bestow_wrapper_t));
-  *bw = (bestow_wrapper_t) { .type = type
-                             .owner = cctx->current, .object = object,
-                             .next = NULL};  
+  bw->type = &bestow_type;
+  bw->owner = cctx->current;
+  bw->object = object;
+  bw->next = NULL;
   return bw;
 }
 
@@ -45,12 +46,12 @@ pony_actor_t *bestow_get_owner(bestow_wrapper_t *bw)
 
 void* bestow_get_object(bestow_wrapper_t *bw)
 {
-  return bw->object.p;
+  return bw->object;
 }
 
-bestow_wraååer_t* bestow_head(void *own)
+bestow_wrapper_t* bestow_head(void *own)
 {
-  return (encore_actor_t*)own->head;
+  return ((encore_actor_t*)own)->head;
 }
 
 void* bestow_search(encore_actor_t *own, void *obj)
@@ -73,9 +74,9 @@ void bestow_insert(pony_ctx_t *ctx, bestow_wrapper_t *bw)
     own->head = bw;
 
 
-  if (!bestow_search(own, obj))
+  if (!bestow_search(own, bw->object))
   {
-    (bestow_wrapper_t*)bw->next = own->head;
+    ((bestow_wrapper_t*)bw)->next = own->head;
     own->head = bw;
   }
 }
@@ -85,14 +86,14 @@ void bestow_remove(pony_ctx_t *ctx, void *own, void *obj)
   (void) ctx;
 
   bestow_wrapper_t *prev = NULL;
-  bestow_wrapper_t *ptr = (encore_actor_t*)own->head;
+  bestow_wrapper_t *ptr = ((encore_actor_t*)own)->head;
 
   while (ptr)
   {
     if (ptr->object == obj)
     {
       if (!prev)
-        (encore_actor_t*)own->head = ptr->next;
+        ((encore_actor_t*)own)->head = ptr->next;
       else
         prev->next = ptr->next;
 

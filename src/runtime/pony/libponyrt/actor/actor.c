@@ -153,7 +153,7 @@ static void try_gc(pony_ctx_t* ctx, pony_actor_t* actor)
   bestow_wrapper_t *node = bestow_head(actor);
   while (node)
   {
-    void *object = node->object.p;
+    void *object = node->object;
     object_t *obj = ponyint_objectmap_getobject(&actor->gc.local, object);
     if (obj->rc != 0)
       encore_trace_object(ctx, object, ((capability_t*) object)->_enc__self_type->trace);

@@ -452,6 +452,21 @@ futureChainActor = Nam "future_chain_actor"
 futureChainActorForward :: CCode Name
 futureChainActorForward = Nam "future_chain_forward"
 
+bestow :: CCode Ty
+bestow = Ptr $ Typ "bestow_wrapper_t"
+
+bestowWrapperMk :: CCode Name
+bestowWrapperMk = Nam "bestow_wrapper_mk"
+
+bestowGetTarget :: CCode Name
+bestowGetTarget = Nam "bestow_get_target"
+
+bestowGetObject :: CCode Name
+bestowGetObject = Nam "bestow_get_object"
+
+bestowInsert :: CCode Name
+bestowInsert = Nam "bestow_insert"
+
 actorSuspend :: CCode Name
 actorSuspend = Nam "actor_suspend"
 
