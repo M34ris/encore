@@ -31,6 +31,7 @@ generateHeader p =
       "pool.h",
       "stdlib.h",
       "closure.h",
+      "bestow.h",
       "stream.h",
       "array.h",
       "tuple.h",

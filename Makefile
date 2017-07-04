@@ -70,6 +70,8 @@ ENCORE_INC=$(ENCORE_DIR)/encore.h
 ENCORE_LIB=$(RUNTIME_DIR)/pony/bin/$(CONFIG)/libencore.a
 CLOSURE_INC=$(RUNTIME_DIR)/closure/closure.h
 CLOSURE_LIB=$(RUNTIME_DIR)/pony/bin/$(CONFIG)/libclosure.a
+BESTOW_INC=$(RUNTIME_DIR)/bestow/bestow.h
+BESTOW_LIB=$(RUNTIME_DIR)/pony/bin/$(CONFIG)/libbestow.a
 TASK_INC=$(RUNTIME_DIR)/task/task.h
 TASK_LIB=$(RUNTIME_DIR)/pony/bin/$(CONFIG)/libtask.a
 PARTY_INC=$(RUNTIME_DIR)/party/party.h
@@ -91,6 +93,7 @@ pony: dirs $(PONY_INC)
 	cp -r $(FUTURE_INC) $(INC_DIR)
 	cp -r $(OPTION_INC) $(INC_DIR)
 	cp -r $(CLOSURE_INC) $(INC_DIR)
+	cp -r $(BESTOW_INC) $(INC_DIR)
 	cp -r $(TASK_INC) $(INC_DIR)
 	cp -r $(PARTY_INC) $(INC_DIR)
 	cp -r $(STREAM_INC) $(INC_DIR)
@@ -101,6 +104,7 @@ pony: dirs $(PONY_INC)
 	cp -r $(PONY_LIB) $(LIB_DIR)
 	cp -r $(FUTURE_LIB) $(LIB_DIR)
 	cp -r $(CLOSURE_LIB) $(LIB_DIR)
+	cp -r $(BESTOW_LIB) $(LIB_DIR)
 	cp -r $(TASK_LIB) $(LIB_DIR)
 	cp -r $(OPTION_LIB) $(LIB_DIR)
 	cp -r $(PARTY_LIB) $(LIB_DIR)

@@ -11,6 +11,7 @@
 #include <assert.h>
 #include <dtrace.h>
 #include "encore.h"
+#include "bestow.h"
 
 #ifdef USE_VALGRIND
 #include <valgrind/helgrind.h>
@@ -149,23 +150,15 @@ static void try_gc(pony_ctx_t* ctx, pony_actor_t* actor)
   if(actor->type->trace != NULL)
     actor->type->trace(ctx, actor);
 
-  bestow_node_t *node = bestow_head((encore_actor_t*) actor);
-  // if (node)
-    // printf("*** INIT GC ***\n");
-
+  bestow_wrapper_t *node = bestow_head(actor);
   while (node)
   {
-    void *object = node->object;
+    void *object = node->object.p;
     object_t *obj = ponyint_objectmap_getobject(&actor->gc.local, object);
-    // printf("[gc] obj: %p   rc: %zu\n", object, obj->rc);
-    if (obj->rc != 0) {
-      // printf("trace fn: %p\n", ((capability_t*) object)->_enc__self_type->trace);
+    if (obj->rc != 0)
       encore_trace_object(ctx, object, ((capability_t*) object)->_enc__self_type->trace);
-    }
-    else {
-      // printf("remove\n");
-      bestow_remove(ctx, (encore_actor_t*) actor, object);
-    }
+    else
+      bestow_remove(ctx, actor, object);
 
     node = node->next;
   }

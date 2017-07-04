@@ -87,6 +87,7 @@ solution "ponyrt"
     "../party",
     "libponyrt",
     "../common",
+    "../bestow",
     "../dtrace",
   }
 
@@ -216,6 +217,14 @@ project "closure"
   files {
     "../closure/closure.h",
     "../closure/closure.c"
+  }
+
+project "bestow"
+  c_lib()
+
+  files {
+    "../bestow/bestow.h",
+    "../bestow/bestow.c"
   }
 
 project "party"
