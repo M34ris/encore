@@ -155,13 +155,13 @@ static void try_gc(pony_ctx_t* ctx, pony_actor_t* actor)
   {
     void *object = node->object;
     object_t *obj = ponyint_objectmap_getobject(&actor->gc.local, object);
-    printf("rc: %zu\n", obj->rc);
+    // printf("rc: %zu\n", obj->rc);
     if (obj->rc != 0)
       encore_trace_object(ctx, object, ((capability_t*) object)->_enc__self_type->trace);
     else
     {
-      printf("remove\n");
-      bestow_remove(ctx, actor, object);
+      // printf("remove\n");
+      bestow_remove(actor, object);
     }
 
     node = node->next;
@@ -326,6 +326,8 @@ void ponyint_actor_final(pony_ctx_t* ctx, pony_actor_t* actor)
   if(actor->type->final != NULL)
     actor->type->final(actor);
 
+  bestow_destroy(actor);
+  
   // Run all outstanding object finalisers.
   ponyint_gc_final(ctx, &actor->gc);
 

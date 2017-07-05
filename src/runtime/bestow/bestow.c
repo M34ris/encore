@@ -6,6 +6,8 @@
 #include "../libponyrt/sched/scheduler.h"
 #include "../libponyrt/mem/pool.h"
 
+#include <stdio.h>
+
 pony_type_t bestow_type = {
   .id = ID_BESTOW,
   .size = sizeof(struct bestow_wrapper),
@@ -30,10 +32,11 @@ void bestow_trace(pony_ctx_t *ctx, void *p)
   pony_trace(ctx, ((bestow_wrapper_t*)p)->object);
 }
 
-bestow_wrapper_t *bestow_wrapper_mk(pony_ctx_t **ctx, void *object)
+bestow_wrapper_t *bestow_wrapper_mk(pony_ctx_t **ctx, void *obj)
 {
   pony_ctx_t *cctx = *ctx;
-  bestow_wrapper_t *bw = bestow_search((encore_actor_t*)cctx->current, object);
+  bestow_wrapper_t *bw = bestow_search((encore_actor_t*)cctx->current, obj);
+  // printf("lookup: %p\n", bw);
   if (bw)
     return bw;
   else
@@ -42,8 +45,9 @@ bestow_wrapper_t *bestow_wrapper_mk(pony_ctx_t **ctx, void *object)
     bestow_wrapper_t *bw = POOL_ALLOC(struct bestow_wrapper);
     bw->type = &bestow_type;
     bw->owner = cctx->current;
-    bw->object = object;
+    bw->object = obj;
     bw->next = NULL;
+    bestow_insert(cctx, bw);
     return bw;
   }
 }
@@ -88,10 +92,8 @@ void bestow_insert(pony_ctx_t *ctx, bestow_wrapper_t *bw)
   }
 }
 
-void bestow_remove(pony_ctx_t *ctx, void *own, void *obj)
+void bestow_remove(void *own, void *obj)
 {
-  (void) ctx;
-
   bestow_wrapper_t *prev = NULL;
   bestow_wrapper_t *ptr = ((encore_actor_t*)own)->head;
 
@@ -110,5 +112,17 @@ void bestow_remove(pony_ctx_t *ctx, void *own, void *obj)
 
     prev = ptr;
     ptr = ptr->next;
+  }
+}
+
+void bestow_destroy(void *own)
+{
+  bestow_wrapper_t *ptr = ((encore_actor_t*)own)->head;
+  while (ptr)
+  {
+    // printf("destroy: %p\n", ptr);
+    bestow_wrapper_t *next = ptr->next;
+    POOL_FREE(struct bestow_wrapper, ptr);
+    ptr = next;
   }
 }
