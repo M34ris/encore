@@ -351,18 +351,11 @@ tracefunDecl A.Class{A.cname, A.cfields, A.cmethods} =
                    (Arrow thisName (typeVarRefName t))
          else error "Expected type variable but found concrete type"
       typeParams = Ty.getTypeParameters cname
-      traceField A.Field {A.ftype, A.fname}
-        | Ty.isBestowObjectType cname = Seq [fieldAssign, traceBestow ftype var]
-        | otherwise = Seq [fieldAssign, traceVariable ftype var]
+      traceField A.Field {A.ftype, A.fname} = Seq [fieldAssign, traceVariable ftype var]
         where
           var = Var . show $ fieldName fname
           field = thisVar `Arrow` fieldName fname
           fieldAssign = Assign (Decl (translate ftype, var)) field
-      traceBestow :: Ty.Type -> CCode Lval -> CCode Stat
-      traceBestow t var
-        | Ty.isTypeVar t = Statement $ Call ponyTrace [ctxArg, var `Dot` (Nam "p")]
-        | otherwise = traceVariable t var
-
 
 runtimeTypeDecl cname =
   AssignTL

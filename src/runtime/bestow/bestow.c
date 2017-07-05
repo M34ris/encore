@@ -12,6 +12,8 @@ pony_type_t bestow_type = {
   .trace = &bestow_trace
 };
 
+void* bestow_search(encore_actor_t *own, void *obj);
+
 /* static inline void bestow_trace(pony_ctx_t *ctx, bestow_wrapper_t *bw) */
 /* { */
 /*   assert(bw); */
@@ -31,12 +33,19 @@ void bestow_trace(pony_ctx_t *ctx, void *p)
 bestow_wrapper_t *bestow_wrapper_mk(pony_ctx_t **ctx, void *object)
 {
   pony_ctx_t *cctx = *ctx;
-  bestow_wrapper_t *bw = pony_alloc(cctx, sizeof(bestow_wrapper_t));
-  bw->type = &bestow_type;
-  bw->owner = cctx->current;
-  bw->object = object;
-  bw->next = NULL;
-  return bw;
+  bestow_wrapper_t *bw = bestow_search((encore_actor_t*)cctx->current, object);
+  if (bw)
+    return bw;
+  else
+  {
+    // bestow_wrapper_t *bw = pony_alloc(cctx, sizeof(bestow_wrapper_t));
+    bestow_wrapper_t *bw = POOL_ALLOC(struct bestow_wrapper);
+    bw->type = &bestow_type;
+    bw->owner = cctx->current;
+    bw->object = object;
+    bw->next = NULL;
+    return bw;
+  }
 }
 
 pony_actor_t *bestow_get_owner(bestow_wrapper_t *bw)
@@ -72,9 +81,7 @@ void bestow_insert(pony_ctx_t *ctx, bestow_wrapper_t *bw)
   encore_actor_t *own = (encore_actor_t*) ctx->current;
   if (!own->head)
     own->head = bw;
-
-
-  if (!bestow_search(own, bw->object))
+  else
   {
     ((bestow_wrapper_t*)bw)->next = own->head;
     own->head = bw;

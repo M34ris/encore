@@ -25,6 +25,7 @@ traceVariable t var
   | Ty.isClassType t        = traceObject var $ classTraceFnName t
   | Ty.isCapabilityType t   = traceCapability var
   | Ty.isFutureType t       = traceObject var futureTraceFn
+  | Ty.isBestowedType t     = traceObject var bestowTraceFn
   | Ty.isArrowType t        = traceObject var closureTraceFn
   | Ty.isArrayType t        = traceObject var arrayTraceFn
   | Ty.isTupleType t        = traceObject var tupleTraceFn

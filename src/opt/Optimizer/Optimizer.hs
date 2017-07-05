@@ -7,6 +7,8 @@ import qualified AST.Meta as Meta
 import Types
 import Control.Applicative (liftA2)
 
+import Debug.Trace
+
 optimizeProgram :: Program -> Program
 optimizeProgram p@(Program{classes, traits, functions}) =
     p{classes = map optimizeClass classes
@@ -49,7 +51,7 @@ optimizeProgram p@(Program{classes, traits, functions}) =
 -- | The functions in this list will be performed in order during optimization
 optimizerPasses :: [Expr -> Expr]
 optimizerPasses = [constantFolding, sugarPrintedStrings, tupleMaybeIdComparison,
-                   dropBorrowBlocks, forwardGeneral, bestowPerformClosure]
+                   dropBorrowBlocks, forwardGeneral, bestowMessageSend]
 
 -- Note that this is not intended as a serious optimization, but
 -- as an example to how an optimization could be made. As soon as
@@ -148,21 +150,20 @@ dropBorrowBlocks = extend dropBorrowBlock
            ,body}
       dropBorrowBlock e = e
 
-bestowPerformClosure :: Expr -> Expr
-bestowPerformClosure = extend bestowSend
+bestowMessageSend :: Expr -> Expr
+bestowMessageSend = extend bestowSend
     where
-      bestowSend e@(MessageSend{emeta, target, name, args, typeArguments})
+      bestowSend e@(MessageSend {emeta, target, name, args, typeArguments})
         | (isBestowedType targetTy) = perform
         | otherwise = e
         where
           targetTy = getType target
+          innerTy  = getResultType $ targetTy
           resultTy = getResultType $ getType e
-          innerTy  = getResultType targetTy
           exprTy   = if (isStatement e)
                      then unitType
                      else futureType resultTy
 
-          eTarget = setType (bestowObjectType innerTy) $ target
           perform = setType exprTy $
                     MessageSend{emeta = emeta, target = bstOwn, name = Name "perform",
                                 args = [closure], typeArguments = [resultTy]}
@@ -173,9 +174,9 @@ bestowPerformClosure = extend bestowSend
                     MethodCall{emeta = emeta, typeArguments = typeArguments,
                                target = bstObj, name = name, args = args}
           bstObj  = setType innerTy $
-                    FieldAccess{emeta = emeta, target = eTarget, name = Name "object"}
+                    Embed emeta innerTy [("bestow_get_object(", target), (");", Skip emeta)]
           bstOwn  = setType actorObjectType $
-                    FieldAccess{emeta = emeta, target = eTarget, name = Name "owner"}
+                    Embed emeta actorObjectType [("(_enc__trait_Std_Actor_t*)bestow_get_owner(", target), (");", Skip emeta)]
       bestowSend e = e
 
 forwardGeneral = extend forwardGeneral'
